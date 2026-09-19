@@ -405,19 +405,46 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Floating Quote Drawer Button -->
-    <button id="floating-quote-btn" onclick="toggleQuoteDrawer()" class="fixed bottom-24 right-6 z-40 bg-brand text-white w-14 h-14 rounded-full flex items-center justify-center text-xl shadow-lg shadow-brand/30 hover:scale-110 transition-transform" title="Ver Lista de Cotización">
+    <!-- Mobile Bottom Navigation (Navegación nativa en celulares) -->
+    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-xl border-t border-white/10 px-2 py-1.5 flex justify-around items-center text-white shadow-2xl">
+        <button onclick="navigate('home')" class="flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5" id="mob-nav-home">
+            <i class="fas fa-home text-base"></i>
+            <span class="text-[9px] font-heading tracking-wider font-bold">INICIO</span>
+        </button>
+        <button onclick="navigate('products')" class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5" id="mob-nav-products">
+            <i class="fas fa-layer-group text-base"></i>
+            <span class="text-[9px] font-heading tracking-wider font-bold">CATÁLOGO</span>
+        </button>
+        <button onclick="openQuickSearchModal()" class="flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5" id="mob-nav-search">
+            <div class="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center -mt-5 shadow-lg shadow-orange-500/40 border-2 border-black">
+                <i class="fas fa-search text-sm"></i>
+            </div>
+            <span class="text-[9px] font-heading tracking-wider font-bold text-brand">BUSCAR</span>
+        </button>
+        <button onclick="toggleQuoteDrawer()" class="relative flex flex-col items-center gap-0.5 text-gray-400 hover:text-blue-400 transition py-1 px-2.5" id="mob-nav-quote">
+            <i class="fas fa-clipboard-list text-base text-blue-400"></i>
+            <span id="quote-badge-bottom-nav" class="absolute -top-1 right-2 bg-blue-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded-full font-mono">0</span>
+            <span class="text-[9px] font-heading tracking-wider font-bold">COTIZAR</span>
+        </button>
+        <button onclick="openGeneralWhatsApp()" class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-green-400 transition py-1 px-2.5">
+            <i class="fab fa-whatsapp text-base text-green-400"></i>
+            <span class="text-[9px] font-heading tracking-wider font-bold">WHATSAPP</span>
+        </button>
+    </nav>
+
+    <!-- Floating Quote Drawer Button (Visible en Laptop/Desktop) -->
+    <button id="floating-quote-btn" onclick="toggleQuoteDrawer()" class="hidden md:flex fixed bottom-24 right-6 z-40 bg-brand text-white w-14 h-14 rounded-full items-center justify-center text-xl shadow-lg shadow-brand/30 hover:scale-110 transition-transform" title="Ver Lista de Cotización">
         <i class="fas fa-clipboard-list"></i>
         <span id="quote-badge-floating" class="absolute -top-1 -right-1 bg-white text-carbon text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-brand font-mono">0</span>
     </button>
 
-    <!-- Floating WhatsApp -->
-    <a href="#" id="floating-whatsapp" onclick="openGeneralWhatsApp()" class="fixed bottom-6 right-6 z-40 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center text-3xl shadow-lg shadow-green-500/30 hover:scale-110 transition-transform" title="WhatsApp Asesoría">
+    <!-- Floating WhatsApp (Visible en Laptop/Desktop) -->
+    <a href="#" id="floating-whatsapp" onclick="openGeneralWhatsApp()" class="hidden md:flex fixed bottom-6 right-6 z-40 bg-green-500 text-white w-14 h-14 rounded-full items-center justify-center text-3xl shadow-lg shadow-green-500/30 hover:scale-110 transition-transform" title="WhatsApp Asesoría">
         <i class="fab fa-whatsapp"></i>
     </a>
 
     <!-- Back to top -->
-    <button id="btn-top" onclick="window.scrollTo(0,0)" class="fixed bottom-6 right-24 z-40 bg-graphite border border-gray-700 text-white w-12 h-12 rounded flex items-center justify-center text-xl shadow-lg opacity-0 pointer-events-none transition-all hover:bg-brand hover:border-brand">
+    <button id="btn-top" onclick="window.scrollTo(0,0)" class="fixed bottom-20 md:bottom-6 right-6 md:right-24 z-30 bg-graphite border border-gray-700 text-white w-11 h-11 md:w-12 md:h-12 rounded flex items-center justify-center text-lg md:text-xl shadow-lg opacity-0 pointer-events-none transition-all hover:bg-brand hover:border-brand">
         <i class="fas fa-arrow-up"></i>
     </button>
 
@@ -425,23 +452,23 @@
     <!-- PUBLIC LAYOUT (Header)                     -->
     <!-- ========================================== -->
     <header id="public-header" class="fixed w-full z-50 transition-all duration-300 bg-black border-b border-[#1a1a1a] shadow-lg">
-        <!-- Top Bar con Reloj en Tiempo Real y Estado Operativo -->
-        <div class="hidden md:flex justify-between items-center px-8 py-2 bg-black text-xs text-gray-300 border-b border-[#161616]">
-            <div class="flex items-center gap-5">
-                <span><i class="fas fa-phone mr-1 text-brand"></i> <span id="topbar-phone">+51 906 851 575</span></span>
-                <span><i class="fas fa-envelope mr-1 text-brand"></i> <span id="topbar-email">corporacionfranir@gmail.com</span></span>
-                <div class="flex items-center gap-2">
-                    <span class="flex items-center gap-1.5 font-mono text-gray-100 font-bold bg-[#141414] border border-gray-800 px-2.5 py-0.5 rounded-md shadow-sm">
-                        <i class="fas fa-clock text-brand text-[11px] animate-pulse"></i>
+        <!-- Top Bar con Reloj en Tiempo Real y Estado Operativo (Adaptativo Móvil y Laptop) -->
+        <div class="flex justify-between items-center px-3 md:px-8 py-1.5 md:py-2 bg-black text-xs text-gray-300 border-b border-[#161616]">
+            <div class="flex items-center gap-3 md:gap-5 overflow-x-auto no-scrollbar py-0.5">
+                <a href="tel:+51906851575" class="flex items-center whitespace-nowrap text-[11px] md:text-xs text-gray-200 hover:text-white transition"><i class="fas fa-phone mr-1.5 text-brand"></i> <span id="topbar-phone">+51 906 851 575</span></a>
+                <span class="hidden sm:inline text-gray-400"><i class="fas fa-envelope mr-1 text-brand"></i> <span id="topbar-email">corporacionfranir@gmail.com</span></span>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="flex items-center gap-1 font-mono text-gray-100 font-bold bg-[#141414] border border-gray-800 px-2 py-0.5 rounded-md shadow-sm text-[10px] md:text-[11px]">
+                        <i class="fas fa-clock text-brand text-[10px] animate-pulse"></i>
                         <span id="topbar-live-clock">--:--:--</span>
                     </span>
-                    <span id="topbar-open-badge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-700 text-emerald-400 flex items-center gap-1 shadow-sm">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ABIERTO AHORA
+                    <span id="topbar-open-badge" class="text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-700 text-emerald-400 flex items-center gap-1 shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ABIERTO
                     </span>
-                    <span class="text-gray-400 text-[11px] font-medium">• Lun - Sáb: 8:00 AM - 6:30 PM</span>
+                    <span class="hidden lg:inline text-gray-400 text-[11px] font-medium">• Lun - Sáb: 8:00 AM - 6:30 PM</span>
                 </div>
             </div>
-            <div class="flex gap-4 items-center">
+            <div class="hidden md:flex gap-4 items-center shrink-0">
                 <span class="text-[10px] text-gray-400 font-mono tracking-wider">LIMA - PERÚ</span>
                 <span class="text-gray-700">|</span>
                 <span class="text-[10px] text-gray-400 tracking-wider">DESPACHOS A NIVEL NACIONAL</span>
@@ -3302,11 +3329,13 @@
             const bHeader = document.getElementById('quote-badge-header');
             const bMobile = document.getElementById('quote-badge-mobile');
             const bFloat = document.getElementById('quote-badge-floating');
+            const bBottom = document.getElementById('quote-badge-bottom-nav');
             const bTotal = document.getElementById('quote-total-count');
 
             if(bHeader) bHeader.innerText = count;
             if(bMobile) bMobile.innerText = count;
             if(bFloat) bFloat.innerText = count;
+            if(bBottom) bBottom.innerText = count;
             if(bTotal) bTotal.innerText = `${count} unidad(es)`;
         }
 
@@ -3475,17 +3504,36 @@
             
             const floatingWa = document.getElementById('floating-whatsapp');
             const floatingQuote = document.getElementById('floating-quote-btn');
+            const mobileBottomNav = document.getElementById('mobile-bottom-nav');
             
             if (!isPublic) {
                 document.body.classList.add('admin-mode');
                 document.body.style.overflow = 'hidden';
                 if(floatingWa) floatingWa.style.display = 'none';
                 if(floatingQuote) floatingQuote.style.display = 'none';
+                if(mobileBottomNav) mobileBottomNav.style.display = 'none';
             } else {
                 document.body.classList.remove('admin-mode');
                 document.body.style.overflow = '';
                 if(floatingWa) floatingWa.style.display = 'flex';
                 if(floatingQuote) floatingQuote.style.display = 'flex';
+                if(mobileBottomNav) mobileBottomNav.style.display = 'flex';
+            }
+
+            // Actualizar estilo activo en barra inferior móvil
+            const mobHome = document.getElementById('mob-nav-home');
+            const mobProd = document.getElementById('mob-nav-products');
+            if (mobHome && mobProd) {
+                if (viewId === 'home') {
+                    mobHome.className = 'flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5';
+                    mobProd.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
+                } else if (viewId === 'products' || viewId === 'detail') {
+                    mobHome.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
+                    mobProd.className = 'flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5';
+                } else {
+                    mobHome.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
+                    mobProd.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
+                }
             }
             
             const target = document.getElementById(`view-${viewId}`);
