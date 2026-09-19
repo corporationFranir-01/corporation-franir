@@ -4699,6 +4699,8 @@
             }
 
             persistState();
+            renderHomeProducts();
+            if (currentView === 'products') filterProducts();
             
             // Sincronizar en la nube (Supabase)
             if (supabaseClient) {
@@ -4730,6 +4732,8 @@
             document.getElementById('btn-confirm-del').onclick = () => {
                 products = products.filter(p => p.id !== id);
                 persistState();
+                renderHomeProducts();
+                if (currentView === 'products') filterProducts();
                 
                 // Eliminar en la nube (Supabase)
                 if (supabaseClient) {
