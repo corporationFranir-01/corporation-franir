@@ -2439,30 +2439,80 @@
                     supabaseApi.select('site_config', '*')
                 ]);
 
+                // 1. Categorías: Unión inteligente para que nunca se pierda lo creado en ningún dispositivo
                 if (catData && catData.length > 0) {
-                    mockCategories = catData;
+                    const cloudCatIds = new Set(catData.map(c => c.id));
+                    const localCatsOnly = mockCategories.filter(c => !cloudCatIds.has(c.id));
+                    mockCategories = [...catData, ...localCatsOnly];
                     localStorage.setItem('franir_categories', JSON.stringify(mockCategories));
+
+                    // Subir a la nube cualquier categoría creada localmente que falte en Supabase
+                    if (localCatsOnly.length > 0) {
+                        supabaseApi.upsert('categories', localCatsOnly.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            img: c.img
+                        }))).catch(err => console.warn('Sync local categories error:', err));
+                    }
+                } else if (mockCategories && mockCategories.length > 0) {
+                    supabaseApi.upsert('categories', mockCategories.map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        img: c.img
+                    }))).catch(err => console.warn('Seed categories error:', err));
                 }
 
+                // 2. Productos: Unión inteligente. Los productos locales NUNCA se borran; se unen y se suben a la nube
                 if (prodData && prodData.length > 0) {
-                    products = prodData.map(p => ({
-                        ...p,
-                        visible: p.visible !== false,
-                        featured: !!p.featured
-                    }));
+                    const cloudProdIds = new Set(prodData.map(p => p.id));
+                    const localProdsOnly = products.filter(p => !cloudProdIds.has(p.id));
+                    
+                    products = [
+                        ...prodData.map(p => ({
+                            ...p,
+                            visible: p.visible !== false,
+                            featured: !!p.featured
+                        })),
+                        ...localProdsOnly
+                    ];
                     localStorage.setItem('franir_products', JSON.stringify(products));
+
+                    // Subir a la nube los productos creados localmente que aún no estaban en Supabase
+                    if (localProdsOnly.length > 0) {
+                        supabaseApi.upsert('products', localProdsOnly).catch(err => console.warn('Sync local products error:', err));
+                    }
+                } else if (products && products.length > 0) {
+                    supabaseApi.upsert('products', products).catch(err => console.warn('Seed products error:', err));
                 }
 
+                // 3. Marcas: Unión inteligente
                 if (brandData && brandData.length > 0) {
-                    brands = brandData;
+                    const cloudBrandIds = new Set(brandData.map(b => b.id));
+                    const localBrandsOnly = brands.filter(b => !cloudBrandIds.has(b.id));
+                    brands = [...brandData, ...localBrandsOnly];
                     localStorage.setItem('franir_brands', JSON.stringify(brands));
+
+                    if (localBrandsOnly.length > 0) {
+                        supabaseApi.upsert('brands', localBrandsOnly).catch(err => console.warn('Sync local brands error:', err));
+                    }
                 }
 
+                // 4. Hero Slides / Portada: Unión inteligente
                 if (slideData && slideData.length > 0) {
-                    heroSlides = slideData.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    const cloudSlideIds = new Set(slideData.map(s => s.id));
+                    const localSlidesOnly = heroSlides.filter(s => !cloudSlideIds.has(s.id));
+                    heroSlides = [
+                        ...slideData.sort((a, b) => (a.order || 0) - (b.order || 0)),
+                        ...localSlidesOnly
+                    ];
                     localStorage.setItem('franir_hero_slides', JSON.stringify(heroSlides));
+
+                    if (localSlidesOnly.length > 0) {
+                        supabaseApi.upsert('hero_slides', localSlidesOnly).catch(err => console.warn('Sync local slides error:', err));
+                    }
                 }
 
+                // 5. Configuración & Identidad: Preservar datos y sincronizar
                 if (cfgData && cfgData.length > 0) {
                     const cfg = cfgData.find(c => c.id === 'global_config') || cfgData[0];
                     if (cfg) {
@@ -2474,7 +2524,26 @@
                         if (cfg.address) globalConfig.address = cfg.address;
                         if (cfg.brand_height) globalConfig.brandHeight = String(cfg.brand_height);
                         if (cfg.logo_height) globalConfig.logoHeight = String(cfg.logo_height);
-                        if (cfg.logo_url !== undefined) globalConfig.logoImg = cfg.logo_url || '';
+                        
+                        // Solo reemplazar el logo si Supabase tiene una imagen válida
+                        // Si Supabase tiene vacío pero localmente existe un logo, conservar el local y subirlo a Supabase
+                        if (cfg.logo_url && cfg.logo_url.trim()) {
+                            globalConfig.logoImg = cfg.logo_url;
+                        } else if (globalConfig.logoImg && globalConfig.logoImg.trim()) {
+                            supabaseApi.upsert('site_config', {
+                                id: 'global_config',
+                                company_name: globalConfig.companyName,
+                                ruc: globalConfig.ruc,
+                                wa_phone: globalConfig.waPhone,
+                                phone_display: globalConfig.phoneDisplay,
+                                email: globalConfig.email,
+                                address: globalConfig.address,
+                                brand_height: parseInt(globalConfig.brandHeight || 55),
+                                logo_height: parseInt(globalConfig.logoHeight || 85),
+                                logo_url: globalConfig.logoImg
+                            }).catch(err => console.warn('Sync local logo error:', err));
+                        }
+
                         localStorage.setItem('franir_config', JSON.stringify(globalConfig));
                     }
                 }
@@ -2489,15 +2558,16 @@
                 renderAdminHeroSlidesList();
                 if (currentView === 'home') {
                     renderHome();
-                    setTimeout(handleScrollReveal, 100);
+                } else if (currentView === 'products') {
+                    renderProductsCatalog();
                 }
-                if (currentView === 'products') renderProductsCatalog();
                 if (document.getElementById('admin-products') && !document.getElementById('admin-products').classList.contains('hidden')) {
                     renderAdminProducts();
                 }
                 if (document.getElementById('admin-categories') && !document.getElementById('admin-categories').classList.contains('hidden')) {
                     renderAdminCategories();
                 }
+                setTimeout(handleScrollReveal, 100);
             } catch (err) {
                 console.warn('Fallo al obtener datos de Supabase Cloud:', err);
                 isSupabaseOnline = false;
@@ -2740,8 +2810,21 @@
 
         function handleLogoHeightChange(val) {
             document.getElementById('cfg-logo-height-label').innerText = val + ' px';
-            globalConfig.logoHeight = val;
+            globalConfig.logoHeight = String(val);
+            persistState();
             updateLogoVisuals();
+            supabaseApi.upsert('site_config', {
+                id: 'global_config',
+                company_name: globalConfig.companyName,
+                ruc: globalConfig.ruc,
+                wa_phone: globalConfig.waPhone,
+                phone_display: globalConfig.phoneDisplay,
+                email: globalConfig.email,
+                address: globalConfig.address,
+                brand_height: parseInt(globalConfig.brandHeight || 55),
+                logo_height: parseInt(val || 85),
+                logo_url: globalConfig.logoImg
+            }).catch(e => console.warn(e));
         }
 
         async function handleLogoUpload(e) {
@@ -2753,13 +2836,53 @@
                 document.getElementById('cfg-logo-val').value = base64;
                 document.getElementById('cfg-logo-preview').src = base64;
                 document.getElementById('cfg-logo-filename').innerText = 'Logo cargado: ' + file.name;
-                showToast('Logo previsualizado. Presiona "Guardar Cambios Visuales"');
+                
+                // Auto-guardado instantáneo: local y en Supabase
+                globalConfig.logoImg = base64;
+                persistState();
+                updateLogoVisuals();
+                showToast('Guardando logo en la nube...', 'info');
+
+                supabaseApi.upsert('site_config', {
+                    id: 'global_config',
+                    company_name: globalConfig.companyName,
+                    ruc: globalConfig.ruc,
+                    wa_phone: globalConfig.waPhone,
+                    phone_display: globalConfig.phoneDisplay,
+                    email: globalConfig.email,
+                    address: globalConfig.address,
+                    brand_height: parseInt(globalConfig.brandHeight || 55),
+                    logo_height: parseInt(globalConfig.logoHeight || 85),
+                    logo_url: base64
+                }).then(() => {
+                    showToast('✅ ¡Logo guardado y sincronizado en la nube!', 'success');
+                }).catch(err => {
+                    console.warn(err);
+                    showToast('Logo guardado localmente', 'warning');
+                });
             }
         }
 
         function handleLogoUrlInput(url) {
             document.getElementById('cfg-logo-val').value = url;
             document.getElementById('cfg-logo-preview').src = url || 'https://placehold.co/300x100/111111/444444?text=Sin+Logotipo';
+            if (url && url.trim().startsWith('http')) {
+                globalConfig.logoImg = url.trim();
+                persistState();
+                updateLogoVisuals();
+                supabaseApi.upsert('site_config', {
+                    id: 'global_config',
+                    company_name: globalConfig.companyName,
+                    ruc: globalConfig.ruc,
+                    wa_phone: globalConfig.waPhone,
+                    phone_display: globalConfig.phoneDisplay,
+                    email: globalConfig.email,
+                    address: globalConfig.address,
+                    brand_height: parseInt(globalConfig.brandHeight || 55),
+                    logo_height: parseInt(globalConfig.logoHeight || 85),
+                    logo_url: url.trim()
+                }).catch(e => console.warn(e));
+            }
         }
 
         function resetDefaultLogo() {
@@ -2767,7 +2890,22 @@
             document.getElementById('cfg-logo-preview').src = 'https://placehold.co/300x100/111111/444444?text=Logo+Texto+Predeterminado';
             document.getElementById('cfg-logo-filename').innerText = 'Subir imagen de Logo desde tu PC';
             if(document.getElementById('cfg-logo-url-input')) document.getElementById('cfg-logo-url-input').value = '';
-            showToast('Logo restablecido al diseño predeterminado. Guarda para aplicar.');
+            globalConfig.logoImg = '';
+            persistState();
+            updateLogoVisuals();
+            supabaseApi.upsert('site_config', {
+                id: 'global_config',
+                company_name: globalConfig.companyName,
+                ruc: globalConfig.ruc,
+                wa_phone: globalConfig.waPhone,
+                phone_display: globalConfig.phoneDisplay,
+                email: globalConfig.email,
+                address: globalConfig.address,
+                brand_height: parseInt(globalConfig.brandHeight || 55),
+                logo_height: parseInt(globalConfig.logoHeight || 85),
+                logo_url: ''
+            }).catch(e => console.warn(e));
+            showToast('Logo restablecido al diseño predeterminado');
         }
 
         // --- SISTEMA DE SLIDESHOW DINÁMICO & LUMINOSO (PORTADA HERO) ---
