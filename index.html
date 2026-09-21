@@ -405,46 +405,19 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Mobile Bottom Navigation (Navegación nativa en celulares) -->
-    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-xl border-t border-white/10 px-2 py-1.5 flex justify-around items-center text-white shadow-2xl">
-        <button onclick="navigate('home')" class="flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5" id="mob-nav-home">
-            <i class="fas fa-home text-base"></i>
-            <span class="text-[9px] font-heading tracking-wider font-bold">INICIO</span>
-        </button>
-        <button onclick="navigate('products')" class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5" id="mob-nav-products">
-            <i class="fas fa-layer-group text-base"></i>
-            <span class="text-[9px] font-heading tracking-wider font-bold">CATÁLOGO</span>
-        </button>
-        <button onclick="openQuickSearchModal()" class="flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5" id="mob-nav-search">
-            <div class="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center -mt-5 shadow-lg shadow-orange-500/40 border-2 border-black">
-                <i class="fas fa-search text-sm"></i>
-            </div>
-            <span class="text-[9px] font-heading tracking-wider font-bold text-brand">BUSCAR</span>
-        </button>
-        <button onclick="toggleQuoteDrawer()" class="relative flex flex-col items-center gap-0.5 text-gray-400 hover:text-blue-400 transition py-1 px-2.5" id="mob-nav-quote">
-            <i class="fas fa-clipboard-list text-base text-blue-400"></i>
-            <span id="quote-badge-bottom-nav" class="absolute -top-1 right-2 bg-blue-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded-full font-mono">0</span>
-            <span class="text-[9px] font-heading tracking-wider font-bold">COTIZAR</span>
-        </button>
-        <button onclick="openGeneralWhatsApp()" class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-green-400 transition py-1 px-2.5">
-            <i class="fab fa-whatsapp text-base text-green-400"></i>
-            <span class="text-[9px] font-heading tracking-wider font-bold">WHATSAPP</span>
-        </button>
-    </nav>
-
-    <!-- Floating Quote Drawer Button (Visible en Laptop/Desktop) -->
-    <button id="floating-quote-btn" onclick="toggleQuoteDrawer()" class="hidden md:flex fixed bottom-24 right-6 z-40 bg-brand text-white w-14 h-14 rounded-full items-center justify-center text-xl shadow-lg shadow-brand/30 hover:scale-110 transition-transform" title="Ver Lista de Cotización">
+    <!-- Floating Quote Drawer Button -->
+    <button id="floating-quote-btn" onclick="toggleQuoteDrawer()" class="fixed bottom-24 right-4 md:right-6 z-40 bg-brand text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl shadow-xl shadow-brand/30 hover:scale-110 transition-transform" title="Ver Lista de Cotización">
         <i class="fas fa-clipboard-list"></i>
-        <span id="quote-badge-floating" class="absolute -top-1 -right-1 bg-white text-carbon text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-brand font-mono">0</span>
+        <span id="quote-badge-floating" class="absolute -top-1 -right-1 bg-white text-carbon text-[10px] md:text-xs font-bold w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center border-2 border-brand font-mono">0</span>
     </button>
 
-    <!-- Floating WhatsApp (Visible en Laptop/Desktop) -->
-    <a href="#" id="floating-whatsapp" onclick="openGeneralWhatsApp()" class="hidden md:flex fixed bottom-6 right-6 z-40 bg-green-500 text-white w-14 h-14 rounded-full items-center justify-center text-3xl shadow-lg shadow-green-500/30 hover:scale-110 transition-transform" title="WhatsApp Asesoría">
+    <!-- Floating WhatsApp -->
+    <a href="#" id="floating-whatsapp" onclick="openGeneralWhatsApp()" class="fixed bottom-6 right-4 md:right-6 z-40 bg-green-500 text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-green-500/30 hover:scale-110 transition-transform" title="WhatsApp Asesoría">
         <i class="fab fa-whatsapp"></i>
     </a>
 
     <!-- Back to top -->
-    <button id="btn-top" onclick="window.scrollTo(0,0)" class="fixed bottom-20 md:bottom-6 right-6 md:right-24 z-30 bg-graphite border border-gray-700 text-white w-11 h-11 md:w-12 md:h-12 rounded flex items-center justify-center text-lg md:text-xl shadow-lg opacity-0 pointer-events-none transition-all hover:bg-brand hover:border-brand">
+    <button id="btn-top" onclick="window.scrollTo(0,0)" class="fixed bottom-6 right-18 md:right-24 z-30 bg-graphite border border-gray-700 text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-base md:text-xl shadow-lg opacity-0 pointer-events-none transition-all hover:bg-brand hover:border-brand">
         <i class="fas fa-arrow-up"></i>
     </button>
 
@@ -3398,13 +3371,11 @@
             const bHeader = document.getElementById('quote-badge-header');
             const bMobile = document.getElementById('quote-badge-mobile');
             const bFloat = document.getElementById('quote-badge-floating');
-            const bBottom = document.getElementById('quote-badge-bottom-nav');
             const bTotal = document.getElementById('quote-total-count');
 
             if(bHeader) bHeader.innerText = count;
             if(bMobile) bMobile.innerText = count;
             if(bFloat) bFloat.innerText = count;
-            if(bBottom) bBottom.innerText = count;
             if(bTotal) bTotal.innerText = `${count} unidad(es)`;
         }
 
@@ -3435,21 +3406,18 @@
                         <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-4 shadow-sm border border-blue-100">
                             <i class="fas fa-clipboard-list"></i>
                         </div>
-                        <p class="font-heading font-extrabold text-base text-gray-900">Tu lista está vacía</p>
-                        <p class="text-xs text-gray-500 mt-1.5 max-w-xs leading-relaxed font-medium">Navega por nuestro catálogo y haz clic en el botón "+ Cotizar" para agregar tus equipos.</p>
-                        <button onclick="toggleQuoteDrawer(); navigate('products')" class="btn-primary mt-5 px-6 py-2.5 rounded-xl text-xs font-bold shadow-md hover:scale-102 transition-transform">EXPLORAR CATÁLOGO</button>
+                        <h4 class="font-heading font-bold text-gray-800 text-lg mb-1 tracking-wide">Tu lista está vacía</h4>
+                        <p class="text-xs text-gray-400 max-w-xs mb-4">Agrega productos del catálogo para generar tu cotización formal inmediata.</p>
+                        <button onclick="toggleQuoteDrawer(); navigate('products')" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold shadow-md hover:scale-102 transition-transform">EXPLORAR CATÁLOGO</button>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = quoteCart.map(item => `
-                <div class="bg-white border border-gray-200 p-3.5 rounded-2xl flex gap-3.5 items-center shadow-sm hover:shadow-md hover:border-blue-400/70 transition-all duration-300 group">
-                    <div class="w-16 h-16 bg-gray-50 border border-gray-100 rounded-xl overflow-hidden p-1.5 flex items-center justify-center shrink-0">
-                        <img src="${item.img}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
-                    </div>
+                <div class="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 flex gap-4 items-center transition hover:border-gray-300">
+                    <img src="${item.img}" class="w-16 h-16 object-contain rounded-xl bg-white border border-gray-200 p-1.5 shrink-0">
                     <div class="flex-grow min-w-0">
-                        <div class="flex items-center gap-1.5 mb-0.5">
                             <span class="text-[10px] text-brand font-mono font-bold uppercase tracking-wider">${item.code}</span>
                             <span class="text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.2 rounded font-mono font-bold">${item.brand || 'FRANIR'}</span>
                         </div>
@@ -3573,36 +3541,17 @@
             
             const floatingWa = document.getElementById('floating-whatsapp');
             const floatingQuote = document.getElementById('floating-quote-btn');
-            const mobileBottomNav = document.getElementById('mobile-bottom-nav');
             
             if (!isPublic) {
                 document.body.classList.add('admin-mode');
                 document.body.style.overflow = 'hidden';
                 if(floatingWa) floatingWa.style.display = 'none';
                 if(floatingQuote) floatingQuote.style.display = 'none';
-                if(mobileBottomNav) mobileBottomNav.style.display = 'none';
             } else {
                 document.body.classList.remove('admin-mode');
                 document.body.style.overflow = '';
                 if(floatingWa) floatingWa.style.display = 'flex';
                 if(floatingQuote) floatingQuote.style.display = 'flex';
-                if(mobileBottomNav) mobileBottomNav.style.display = 'flex';
-            }
-
-            // Actualizar estilo activo en barra inferior móvil
-            const mobHome = document.getElementById('mob-nav-home');
-            const mobProd = document.getElementById('mob-nav-products');
-            if (mobHome && mobProd) {
-                if (viewId === 'home') {
-                    mobHome.className = 'flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5';
-                    mobProd.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
-                } else if (viewId === 'products' || viewId === 'detail') {
-                    mobHome.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
-                    mobProd.className = 'flex flex-col items-center gap-0.5 text-brand transition py-1 px-2.5';
-                } else {
-                    mobHome.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
-                    mobProd.className = 'flex flex-col items-center gap-0.5 text-gray-400 hover:text-brand transition py-1 px-2.5';
-                }
             }
             
             const target = document.getElementById(`view-${viewId}`);
