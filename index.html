@@ -2264,7 +2264,8 @@
         let quoteCart = JSON.parse(localStorage.getItem('franir_quote_cart')) || [];
 
         // Compresor ligero de imágenes para evitar saturación de memoria y agilizar sincronización
-        function compressImageFile(file, maxWidth = 800, maxHeight = 800, quality = 0.85) {
+        // Compresor optimizado de imágenes para evitar saturación de memoria y garantizar sincronización inmediata
+        function compressImageFile(file, maxWidth = 800, maxHeight = 800, quality = 0.8, forceJpeg = false) {
             return new Promise((resolve) => {
                 if (!file) return resolve(null);
                 if (file.type === 'image/svg+xml') {
@@ -2293,10 +2294,17 @@
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
+                        
                         const isPng = file.type === 'image/png';
-                        const outputFormat = isPng ? 'image/png' : 'image/jpeg';
-                        const dataUrl = canvas.toDataURL(outputFormat, quality);
+                        const format = (isPng && !forceJpeg) ? 'image/png' : 'image/jpeg';
+                        
+                        if (format === 'image/jpeg') {
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(0, 0, width, height);
+                        }
+                        
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL(format, quality);
                         resolve(dataUrl);
                     };
                     img.onerror = function() {
@@ -2312,16 +2320,20 @@
         }
 
         function persistState() {
-            try {
-                localStorage.setItem('franir_categories', JSON.stringify(mockCategories));
-                localStorage.setItem('franir_products', JSON.stringify(products));
-                localStorage.setItem('franir_brands', JSON.stringify(brands));
-                localStorage.setItem('franir_hero_slides', JSON.stringify(heroSlides));
-                localStorage.setItem('franir_config', JSON.stringify(globalConfig));
-                localStorage.setItem('franir_quote_cart', JSON.stringify(quoteCart));
-            } catch (e) {
-                console.warn('⚠️ Alerta de almacenamiento local (cuota excedida o modo privado):', e);
-            }
+            const safeSet = (key, val) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(val));
+                } catch (e) {
+                    console.warn(`Alerta almacenamiento local (${key}):`, e);
+                }
+            };
+            safeSet('franir_categories', mockCategories);
+            safeSet('franir_products', products);
+            safeSet('franir_brands', brands);
+            safeSet('franir_hero_slides', heroSlides);
+            safeSet('franir_config', globalConfig);
+            safeSet('franir_quote_cart', quoteCart);
+
             updateContactVisuals();
             updateLogoVisuals();
             updateQuoteBadges();
@@ -2429,6 +2441,105 @@
             fetchFromSupabase();
         }
 
+        // Sanitizadores para Supabase (garantizan que solo se envíen columnas válidas del esquema)
+        function cleanCategoryForDb(c) {
+            return {
+                id: String(c.id),
+                name: String(c.name || ''),
+                img: String(c.img || '')
+            };
+        }
+
+        function cleanHeroSlideForDb(s, order = 0) {
+            return {
+                id: String(s.id),
+                title: String(s.title || ''),
+                subtitle: String(s.subtitle || ''),
+                img: String(s.img || ''),
+                desc: String(s.desc || ''),
+                order: typeof s.order === 'number' ? s.order : order
+            };
+        }
+
+        function cleanProductForDb(p) {
+            return {
+                id: String(p.id),
+                code: String(p.code || ''),
+                name: String(p.name || ''),
+                category: String(p.category || ''),
+                brand: String(p.brand || ''),
+                capacity: String(p.capacity || ''),
+                material: String(p.material || ''),
+                norm: String(p.norm || ''),
+                img: String(p.img || ''),
+                desc: String(p.desc || ''),
+                visible: p.visible !== false,
+                featured: !!p.featured
+            };
+        }
+
+        function cleanBrandForDb(b) {
+            return {
+                id: String(b.id),
+                name: String(b.name || ''),
+                logo: String(b.logo || ''),
+                icon: String(b.icon || 'fa-certificate')
+            };
+        }
+
+        function cleanConfigForDb(cfg) {
+            return {
+                id: 'global_config',
+                company_name: String(cfg.companyName || DEFAULT_CONFIG.companyName),
+                ruc: String(cfg.ruc || DEFAULT_CONFIG.ruc),
+                wa_phone: String(cfg.waPhone || DEFAULT_CONFIG.waPhone),
+                phone_display: String(cfg.phoneDisplay || DEFAULT_CONFIG.phoneDisplay),
+                email: String(cfg.email || DEFAULT_CONFIG.email),
+                address: String(cfg.address || DEFAULT_CONFIG.address),
+                brand_height: parseInt(cfg.brandHeight || 55),
+                logo_height: parseInt(cfg.logoHeight || 85),
+                logo_url: String(cfg.logoImg || '')
+            };
+        }
+
+        // Registro de elementos eliminados localmente para evitar que Supabase los resucite al actualizar
+        const deletedIds = {
+            categories: new Set(JSON.parse(localStorage.getItem('franir_del_cats') || '[]')),
+            hero_slides: new Set(JSON.parse(localStorage.getItem('franir_del_slides') || '[]')),
+            products: new Set(JSON.parse(localStorage.getItem('franir_del_prods') || '[]')),
+            brands: new Set(JSON.parse(localStorage.getItem('franir_del_brands') || '[]'))
+        };
+
+        function markAsDeleted(table, id) {
+            if (deletedIds[table]) {
+                deletedIds[table].add(String(id));
+                const keyMap = {
+                    categories: 'franir_del_cats',
+                    hero_slides: 'franir_del_slides',
+                    products: 'franir_del_prods',
+                    brands: 'franir_del_brands'
+                };
+                try {
+                    localStorage.setItem(keyMap[table], JSON.stringify(Array.from(deletedIds[table])));
+                } catch (e) {}
+            }
+        }
+
+        function unmarkAsDeleted(table, id) {
+            if (deletedIds[table] && deletedIds[table].has(String(id))) {
+                deletedIds[table].delete(String(id));
+                const keyMap = {
+                    categories: 'franir_del_cats',
+                    hero_slides: 'franir_del_slides',
+                    products: 'franir_del_prods',
+                    brands: 'franir_del_brands'
+                };
+                try {
+                    localStorage.setItem(keyMap[table], JSON.stringify(Array.from(deletedIds[table])));
+                } catch (e) {}
+            }
+        }
+
         async function fetchFromSupabase() {
             try {
                 const [catData, prodData, brandData, slideData, cfgData] = await Promise.all([
@@ -2439,112 +2550,194 @@
                     supabaseApi.select('site_config', '*')
                 ]);
 
-                // 1. Categorías: Unión inteligente para que nunca se pierda lo creado en ningún dispositivo
+                // 1. Categorías: Fusión bidireccional inteligente (nunca sobrescribe ediciones locales recientes)
                 if (catData && catData.length > 0) {
-                    const cloudCatIds = new Set(catData.map(c => c.id));
-                    const localCatsOnly = mockCategories.filter(c => !cloudCatIds.has(c.id));
-                    mockCategories = [...catData, ...localCatsOnly];
-                    localStorage.setItem('franir_categories', JSON.stringify(mockCategories));
+                    const validCloudCats = catData.filter(c => !deletedIds.categories.has(String(c.id)));
+                    const mergedCats = [];
+                    const cloudHandledIds = new Set();
+                    const catsToPushToCloud = [];
 
-                    // Subir a la nube cualquier categoría creada localmente que falte en Supabase
-                    if (localCatsOnly.length > 0) {
-                        supabaseApi.upsert('categories', localCatsOnly.map(c => ({
-                            id: c.id,
-                            name: c.name,
-                            img: c.img
-                        }))).catch(err => console.warn('Sync local categories error:', err));
+                    for (const cloudCat of validCloudCats) {
+                        cloudHandledIds.add(cloudCat.id);
+                        const localCat = mockCategories.find(c => c.id === cloudCat.id);
+                        if (localCat && localCat._updatedAt) {
+                            // La versión local fue modificada recientemente por el usuario: preservar versión local
+                            mergedCats.push(localCat);
+                            if (localCat.name !== cloudCat.name || localCat.img !== cloudCat.img) {
+                                catsToPushToCloud.push(cleanCategoryForDb(localCat));
+                            }
+                        } else {
+                            // Usar versión de la nube y mantener icono local si existe
+                            mergedCats.push({
+                                ...cloudCat,
+                                icon: (localCat && localCat.icon) || 'fas fa-layer-group'
+                            });
+                        }
+                    }
+
+                    // Categorías locales que aún no existen en la nube y no han sido eliminadas
+                    for (const localCat of mockCategories) {
+                        if (!cloudHandledIds.has(localCat.id) && !deletedIds.categories.has(String(localCat.id))) {
+                            mergedCats.push(localCat);
+                            catsToPushToCloud.push(cleanCategoryForDb(localCat));
+                        }
+                    }
+
+                    mockCategories = mergedCats;
+                    persistState();
+
+                    // Sincronizar hacia Supabase cualquier categoría local actualizada
+                    if (catsToPushToCloud.length > 0) {
+                        supabaseApi.upsert('categories', catsToPushToCloud).catch(err => console.warn('Sync categories background error:', err));
                     }
                 } else if (mockCategories && mockCategories.length > 0) {
-                    supabaseApi.upsert('categories', mockCategories.map(c => ({
-                        id: c.id,
-                        name: c.name,
-                        img: c.img
-                    }))).catch(err => console.warn('Seed categories error:', err));
+                    const validLocal = mockCategories.filter(c => !deletedIds.categories.has(String(c.id)));
+                    if (validLocal.length > 0) {
+                        supabaseApi.upsert('categories', validLocal.map(cleanCategoryForDb)).catch(err => console.warn('Seed categories error:', err));
+                    }
                 }
 
-                // 2. Productos: Unión inteligente. Los productos locales NUNCA se borran; se unen y se suben a la nube
-                if (prodData && prodData.length > 0) {
-                    const cloudProdIds = new Set(prodData.map(p => p.id));
-                    const localProdsOnly = products.filter(p => !cloudProdIds.has(p.id));
-                    
-                    products = [
-                        ...prodData.map(p => ({
-                            ...p,
-                            visible: p.visible !== false,
-                            featured: !!p.featured
-                        })),
-                        ...localProdsOnly
-                    ];
-                    localStorage.setItem('franir_products', JSON.stringify(products));
+                // 2. Fotos de Portada (Hero Slides): Fusión bidireccional inteligente
+                if (slideData && slideData.length > 0) {
+                    const validCloudSlides = slideData.filter(s => !deletedIds.hero_slides.has(String(s.id)));
+                    const mergedSlides = [];
+                    const cloudHandledIds = new Set();
+                    const slidesToPushToCloud = [];
 
-                    // Subir a la nube los productos creados localmente que aún no estaban en Supabase
-                    if (localProdsOnly.length > 0) {
-                        supabaseApi.upsert('products', localProdsOnly).catch(err => console.warn('Sync local products error:', err));
+                    for (const cloudSlide of validCloudSlides) {
+                        cloudHandledIds.add(cloudSlide.id);
+                        const localSlide = heroSlides.find(s => s.id === cloudSlide.id);
+                        if (localSlide && localSlide._updatedAt) {
+                            mergedSlides.push(localSlide);
+                            if (localSlide.img !== cloudSlide.img || localSlide.title !== cloudSlide.title || localSlide.subtitle !== cloudSlide.subtitle) {
+                                slidesToPushToCloud.push(cleanHeroSlideForDb(localSlide, localSlide.order || 0));
+                            }
+                        } else {
+                            mergedSlides.push(cloudSlide);
+                        }
+                    }
+
+                    for (const localSlide of heroSlides) {
+                        if (!cloudHandledIds.has(localSlide.id) && !deletedIds.hero_slides.has(String(localSlide.id))) {
+                            mergedSlides.push(localSlide);
+                            slidesToPushToCloud.push(cleanHeroSlideForDb(localSlide, localSlide.order || 0));
+                        }
+                    }
+
+                    mergedSlides.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    heroSlides = mergedSlides;
+                    persistState();
+
+                    if (slidesToPushToCloud.length > 0) {
+                        supabaseApi.upsert('hero_slides', slidesToPushToCloud).catch(err => console.warn('Sync slides background error:', err));
+                    }
+                } else if (heroSlides && heroSlides.length > 0) {
+                    const validLocal = heroSlides.filter(s => !deletedIds.hero_slides.has(String(s.id)));
+                    if (validLocal.length > 0) {
+                        supabaseApi.upsert('hero_slides', validLocal.map((s, i) => cleanHeroSlideForDb(s, i))).catch(err => console.warn('Seed slides error:', err));
+                    }
+                }
+
+                // 3. Productos: Fusión bidireccional inteligente
+                if (prodData && prodData.length > 0) {
+                    const validCloudProds = prodData.filter(p => !deletedIds.products.has(String(p.id)));
+                    const mergedProds = [];
+                    const cloudHandledIds = new Set();
+                    const prodsToPushToCloud = [];
+
+                    for (const cloudProd of validCloudProds) {
+                        cloudHandledIds.add(cloudProd.id);
+                        const localProd = products.find(p => p.id === cloudProd.id);
+                        if (localProd && localProd._updatedAt) {
+                            mergedProds.push(localProd);
+                            if (localProd.name !== cloudProd.name || localProd.img !== cloudProd.img || localProd.category !== cloudProd.category) {
+                                prodsToPushToCloud.push(cleanProductForDb(localProd));
+                            }
+                        } else {
+                            mergedProds.push({
+                                ...cloudProd,
+                                visible: cloudProd.visible !== false,
+                                featured: !!cloudProd.featured
+                            });
+                        }
+                    }
+
+                    for (const localProd of products) {
+                        if (!cloudHandledIds.has(localProd.id) && !deletedIds.products.has(String(localProd.id))) {
+                            mergedProds.push(localProd);
+                            prodsToPushToCloud.push(cleanProductForDb(localProd));
+                        }
+                    }
+
+                    products = mergedProds;
+                    persistState();
+
+                    if (prodsToPushToCloud.length > 0) {
+                        supabaseApi.upsert('products', prodsToPushToCloud).catch(err => console.warn('Sync products background error:', err));
                     }
                 } else if (products && products.length > 0) {
-                    supabaseApi.upsert('products', products).catch(err => console.warn('Seed products error:', err));
+                    const validLocal = products.filter(p => !deletedIds.products.has(String(p.id)));
+                    if (validLocal.length > 0) {
+                        supabaseApi.upsert('products', validLocal.map(cleanProductForDb)).catch(err => console.warn('Seed products error:', err));
+                    }
                 }
 
-                // 3. Marcas: Unión inteligente
+                // 4. Marcas: Fusión bidireccional inteligente
                 if (brandData && brandData.length > 0) {
-                    const cloudBrandIds = new Set(brandData.map(b => b.id));
-                    const localBrandsOnly = brands.filter(b => !cloudBrandIds.has(b.id));
-                    brands = [...brandData, ...localBrandsOnly];
-                    localStorage.setItem('franir_brands', JSON.stringify(brands));
+                    const validCloudBrands = brandData.filter(b => !deletedIds.brands.has(String(b.id)));
+                    const mergedBrands = [];
+                    const cloudHandledIds = new Set();
+                    const brandsToPushToCloud = [];
 
-                    if (localBrandsOnly.length > 0) {
-                        supabaseApi.upsert('brands', localBrandsOnly).catch(err => console.warn('Sync local brands error:', err));
+                    for (const cloudBrand of validCloudBrands) {
+                        cloudHandledIds.add(cloudBrand.id);
+                        const localBrand = brands.find(b => String(b.id) === String(cloudBrand.id));
+                        if (localBrand && localBrand._updatedAt) {
+                            mergedBrands.push(localBrand);
+                            if (localBrand.logo !== cloudBrand.logo || localBrand.name !== cloudBrand.name) {
+                                brandsToPushToCloud.push(cleanBrandForDb(localBrand));
+                            }
+                        } else {
+                            mergedBrands.push({
+                                ...cloudBrand,
+                                icon: (localBrand && localBrand.icon) || cloudBrand.icon || 'fa-certificate'
+                            });
+                        }
+                    }
+
+                    for (const localBrand of brands) {
+                        if (!cloudHandledIds.has(localBrand.id) && !deletedIds.brands.has(String(localBrand.id))) {
+                            mergedBrands.push(localBrand);
+                            brandsToPushToCloud.push(cleanBrandForDb(localBrand));
+                        }
+                    }
+
+                    brands = mergedBrands;
+                    persistState();
+
+                    if (brandsToPushToCloud.length > 0) {
+                        supabaseApi.upsert('brands', brandsToPushToCloud).catch(err => console.warn('Sync brands background error:', err));
                     }
                 }
 
-                // 4. Hero Slides / Portada: Unión inteligente
-                if (slideData && slideData.length > 0) {
-                    const cloudSlideIds = new Set(slideData.map(s => s.id));
-                    const localSlidesOnly = heroSlides.filter(s => !cloudSlideIds.has(s.id));
-                    heroSlides = [
-                        ...slideData.sort((a, b) => (a.order || 0) - (b.order || 0)),
-                        ...localSlidesOnly
-                    ];
-                    localStorage.setItem('franir_hero_slides', JSON.stringify(heroSlides));
-
-                    if (localSlidesOnly.length > 0) {
-                        supabaseApi.upsert('hero_slides', localSlidesOnly).catch(err => console.warn('Sync local slides error:', err));
-                    }
-                }
-
-                // 5. Configuración & Identidad: Preservar datos y sincronizar
+                // 5. Configuración & Identidad Visual
                 if (cfgData && cfgData.length > 0) {
                     const cfg = cfgData.find(c => c.id === 'global_config') || cfgData[0];
                     if (cfg) {
-                        if (cfg.company_name) globalConfig.companyName = cfg.company_name;
-                        if (cfg.ruc) globalConfig.ruc = cfg.ruc;
-                        if (cfg.wa_phone) globalConfig.waPhone = cfg.wa_phone;
-                        if (cfg.phone_display) globalConfig.phoneDisplay = cfg.phone_display;
-                        if (cfg.email) globalConfig.email = cfg.email;
-                        if (cfg.address) globalConfig.address = cfg.address;
-                        if (cfg.brand_height) globalConfig.brandHeight = String(cfg.brand_height);
-                        if (cfg.logo_height) globalConfig.logoHeight = String(cfg.logo_height);
-                        
-                        // Solo reemplazar el logo si Supabase tiene una imagen válida
-                        // Si Supabase tiene vacío pero localmente existe un logo, conservar el local y subirlo a Supabase
-                        if (cfg.logo_url && cfg.logo_url.trim()) {
-                            globalConfig.logoImg = cfg.logo_url;
-                        } else if (globalConfig.logoImg && globalConfig.logoImg.trim()) {
-                            supabaseApi.upsert('site_config', {
-                                id: 'global_config',
-                                company_name: globalConfig.companyName,
-                                ruc: globalConfig.ruc,
-                                wa_phone: globalConfig.waPhone,
-                                phone_display: globalConfig.phoneDisplay,
-                                email: globalConfig.email,
-                                address: globalConfig.address,
-                                brand_height: parseInt(globalConfig.brandHeight || 55),
-                                logo_height: parseInt(globalConfig.logoHeight || 85),
-                                logo_url: globalConfig.logoImg
-                            }).catch(err => console.warn('Sync local logo error:', err));
+                        if (!globalConfig._updatedAt) {
+                            if (cfg.company_name) globalConfig.companyName = cfg.company_name;
+                            if (cfg.ruc) globalConfig.ruc = cfg.ruc;
+                            if (cfg.wa_phone) globalConfig.waPhone = cfg.wa_phone;
+                            if (cfg.phone_display) globalConfig.phoneDisplay = cfg.phone_display;
+                            if (cfg.email) globalConfig.email = cfg.email;
+                            if (cfg.address) globalConfig.address = cfg.address;
+                            if (cfg.brand_height) globalConfig.brandHeight = String(cfg.brand_height);
+                            if (cfg.logo_height) globalConfig.logoHeight = String(cfg.logo_height);
+                            if (cfg.logo_url && cfg.logo_url.trim()) globalConfig.logoImg = cfg.logo_url;
+                        } else {
+                            supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig)).catch(err => console.warn('Sync config error:', err));
                         }
-
-                        localStorage.setItem('franir_config', JSON.stringify(globalConfig));
+                        persistState();
                     }
                 }
 
@@ -2587,66 +2780,26 @@
             try {
                 // Upsert Categorías
                 if (mockCategories.length > 0) {
-                    await supabaseApi.upsert('categories', mockCategories.map(c => ({
-                        id: c.id,
-                        name: c.name,
-                        img: c.img
-                    })));
+                    await supabaseApi.upsert('categories', mockCategories.map(cleanCategoryForDb));
                 }
 
                 // Upsert Productos
                 if (products.length > 0) {
-                    await supabaseApi.upsert('products', products.map(p => ({
-                        id: p.id,
-                        code: p.code,
-                        name: p.name,
-                        category: p.category,
-                        brand: p.brand,
-                        capacity: p.capacity,
-                        material: p.material,
-                        norm: p.norm,
-                        img: p.img,
-                        desc: p.desc,
-                        visible: p.visible !== false,
-                        featured: !!p.featured
-                    })));
+                    await supabaseApi.upsert('products', products.map(cleanProductForDb));
                 }
 
                 // Upsert Marcas
                 if (brands.length > 0) {
-                    await supabaseApi.upsert('brands', brands.map(b => ({
-                        id: b.id,
-                        name: b.name,
-                        logo: b.logo,
-                        icon: b.icon
-                    })));
+                    await supabaseApi.upsert('brands', brands.map(cleanBrandForDb));
                 }
 
                 // Upsert Hero Slides
                 if (heroSlides.length > 0) {
-                    await supabaseApi.upsert('hero_slides', heroSlides.map((s, idx) => ({
-                        id: s.id,
-                        title: s.title,
-                        subtitle: s.subtitle,
-                        img: s.img,
-                        desc: s.desc,
-                        order: idx
-                    })));
+                    await supabaseApi.upsert('hero_slides', heroSlides.map((s, idx) => cleanHeroSlideForDb(s, idx)));
                 }
 
                 // Upsert Config
-                await supabaseApi.upsert('site_config', {
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: globalConfig.logoImg
-                });
+                await supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig));
 
                 isSupabaseOnline = true;
                 updateSupabaseUIBadge(true);
@@ -3123,14 +3276,14 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            const base64 = await compressImageFile(file, 1600, 900, 0.85);
+            const base64 = await compressImageFile(file, 1200, 650, 0.78, true);
             if (base64) {
                 document.getElementById('hero-slide-val').value = base64;
                 document.getElementById('hero-slide-preview').src = base64;
                 document.getElementById('hero-slide-filename').innerText = 'Foto cargada: ' + file.name;
                 const statusEl = document.getElementById('hero-slide-preview-status');
                 if (statusEl) statusEl.classList.remove('hidden');
-                showToast('Foto cargada correctamente');
+                showToast('Foto cargada y optimizada ✅');
             }
         }
 
@@ -3197,6 +3350,7 @@
                     if (titleInput) heroSlides[idx].title = formattedTitle;
                     if (subtitle) heroSlides[idx].subtitle = subtitle.toUpperCase();
                     heroSlides[idx].img = img;
+                    heroSlides[idx]._updatedAt = Date.now();
                     slideObj = heroSlides[idx];
                 }
             } else {
@@ -3205,9 +3359,15 @@
                     title: formattedTitle,
                     subtitle: subtitle ? subtitle.toUpperCase() : 'ESPECIALISTAS EN IZAJE & TRABAJOS EN ALTURA',
                     desc: 'Equipamiento de alta resistencia certificado bajo normativas ANSI, CE y EN para todo el Perú.',
-                    img: img
+                    img: img,
+                    order: heroSlides.length,
+                    _updatedAt: Date.now()
                 };
                 heroSlides.push(slideObj);
+            }
+
+            if (slideObj) {
+                unmarkAsDeleted('hero_slides', slideObj.id);
             }
 
             persistState();
@@ -3217,14 +3377,7 @@
             // Sincronizar en Supabase Cloud con API directa
             if (slideObj) {
                 try {
-                    const res = await supabaseApi.upsert('hero_slides', {
-                        id: slideObj.id,
-                        title: slideObj.title,
-                        subtitle: slideObj.subtitle,
-                        img: slideObj.img,
-                        desc: slideObj.desc,
-                        order: heroSlides.indexOf(slideObj)
-                    });
+                    const res = await supabaseApi.upsert('hero_slides', cleanHeroSlideForDb(slideObj, heroSlides.indexOf(slideObj)));
                     if (res && res.error) {
                         console.warn('Supabase slide upsert error:', res.error);
                         state.done(false, 'Guardado local');
@@ -3252,6 +3405,7 @@
                 return;
             }
             if (!confirm('¿Estás seguro de eliminar esta foto de la portada?')) return;
+            markAsDeleted('hero_slides', id);
             heroSlides = heroSlides.filter(s => s.id !== id);
             persistState();
 
@@ -3415,13 +3569,15 @@
                 if (idx > -1) {
                     brands[idx].name = name;
                     brands[idx].logo = logo;
+                    brands[idx]._updatedAt = Date.now();
                     brandObj = brands[idx];
                 } else {
                     brandObj = {
                         id: id,
                         name: name,
                         logo: logo,
-                        icon: 'fa-certificate'
+                        icon: 'fa-certificate',
+                        _updatedAt: Date.now()
                     };
                     brands.push(brandObj);
                 }
@@ -3430,9 +3586,14 @@
                     id: 'b_' + Date.now(),
                     name: name,
                     logo: logo,
-                    icon: 'fa-certificate'
+                    icon: 'fa-certificate',
+                    _updatedAt: Date.now()
                 };
                 brands.push(brandObj);
+            }
+
+            if (brandObj) {
+                unmarkAsDeleted('brands', brandObj.id);
             }
 
             persistState();
@@ -3442,12 +3603,7 @@
             // Sincronizar en Supabase Cloud con API directa
             if (brandObj) {
                 try {
-                    const res = await supabaseApi.upsert('brands', {
-                        id: brandObj.id,
-                        name: brandObj.name,
-                        logo: brandObj.logo,
-                        icon: brandObj.icon || 'fa-certificate'
-                    });
+                    const res = await supabaseApi.upsert('brands', cleanBrandForDb(brandObj));
                     if (res && res.error) {
                         console.warn('Supabase brand upsert error:', res.error);
                         state.done(false, 'Guardado local');
@@ -3471,6 +3627,7 @@
 
         function deleteBrand(id) {
             if (!confirm('¿Estás seguro de eliminar esta marca del carrusel de portada?')) return;
+            markAsDeleted('brands', id);
             brands = brands.filter(b => b.id !== id);
             persistState();
 
@@ -4808,13 +4965,14 @@
             const file = e.target.files[0];
             if(!file) return;
             
-            const base64 = await compressImageFile(file, 900, 900, 0.85);
+            const base64 = await compressImageFile(file, 650, 650, 0.8, true);
             if (base64) {
                 document.getElementById('prod-img').value = base64;
                 const preview = document.getElementById('img-preview');
                 preview.src = base64;
                 preview.classList.remove('hidden');
-                document.getElementById('img-upload-text').innerText = 'Imagen cargada: ' + file.name;
+                document.getElementById('img-upload-text').innerText = 'Imagen cargada y optimizada: ' + file.name;
+                showToast('Imagen de producto cargada y optimizada ✅');
             }
         }
 
@@ -4886,8 +5044,11 @@
                 img: document.getElementById('prod-img').value || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80',
                 desc: document.getElementById('prod-desc').value,
                 visible: document.getElementById('prod-visible').checked,
-                featured: document.getElementById('prod-featured').checked
+                featured: document.getElementById('prod-featured').checked,
+                _updatedAt: Date.now()
             };
+
+            unmarkAsDeleted('products', newProduct.id);
 
             if (id) {
                 const index = products.findIndex(p => p.id === id);
@@ -4902,9 +5063,9 @@
             if (typeof renderHome === 'function') renderHome();
             if (currentView === 'products') filterProducts();
             
-            // Sincronizar en la nube (Supabase REST API)
+            // Sincronizar en la nube (Supabase REST API) con sanitización de columnas
             try {
-                const res = await supabaseApi.upsert('products', newProduct);
+                const res = await supabaseApi.upsert('products', cleanProductForDb(newProduct));
                 if (res && res.error) {
                     console.warn('Supabase product upsert error:', res.error);
                     state.done(false, 'Guardado local');
@@ -4942,6 +5103,7 @@
 
             document.getElementById('btn-cancel-del').onclick = () => confirmDiv.remove();
             document.getElementById('btn-confirm-del').onclick = () => {
+                markAsDeleted('products', id);
                 products = products.filter(p => p.id !== id);
                 persistState();
                 if (typeof renderHome === 'function') renderHome();
@@ -5045,6 +5207,7 @@
                 if (index > -1) {
                     mockCategories[index].name = name;
                     mockCategories[index].img = img;
+                    mockCategories[index]._updatedAt = Date.now();
                     categoryObj = mockCategories[index];
                     persistState();
                     showToast('Categoría actualizada con éxito');
@@ -5056,21 +5219,22 @@
                     id: newId,
                     name: name,
                     icon: 'fas fa-layer-group',
-                    img: img
+                    img: img,
+                    _updatedAt: Date.now()
                 };
                 mockCategories.push(categoryObj);
                 persistState();
                 showToast('¡Nueva categoría agregada con éxito!');
             }
 
+            if (categoryObj) {
+                unmarkAsDeleted('categories', categoryObj.id);
+            }
+
             // Sincronizar con Supabase Cloud con API directa
             if (categoryObj) {
                 try {
-                    const res = await supabaseApi.upsert('categories', {
-                        id: categoryObj.id,
-                        name: categoryObj.name,
-                        img: categoryObj.img
-                    });
+                    const res = await supabaseApi.upsert('categories', cleanCategoryForDb(categoryObj));
                     if (res && res.error) {
                         console.warn('Supabase category upsert error:', res.error);
                         state.done(false, 'Guardado local');
@@ -5125,6 +5289,7 @@
 
             document.getElementById('cancel-del-cat-btn').onclick = () => confirmDiv.remove();
             document.getElementById('confirm-del-cat-btn').onclick = () => {
+                markAsDeleted('categories', id);
                 mockCategories = mockCategories.filter(c => c.id !== id);
                 persistState();
 
@@ -5142,17 +5307,20 @@
             };
         }
 
-        function handleGenericUpload(e, previewId, valId) {
+        async function handleGenericUpload(e, previewId, valId) {
             const file = e.target.files[0];
-            if(!file) return;
+            if (!file) return;
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const base64 = event.target.result;
+            const base64 = await compressImageFile(file, 700, 450, 0.78, true);
+            if (base64) {
                 document.getElementById(valId).value = base64;
-                document.getElementById(previewId).src = base64;
-            };
-            reader.readAsDataURL(file);
+                const preview = document.getElementById(previewId);
+                if (preview) {
+                    preview.src = base64;
+                    preview.classList.remove('hidden');
+                }
+                showToast('Imagen cargada y optimizada ✅');
+            }
         }
 
         function renderAdminConfig() {
@@ -5201,6 +5369,7 @@
             globalConfig.logoImg = newLogo;
             globalConfig.logoHeight = newHeight;
             globalConfig.brandHeight = newBrandHeight;
+            globalConfig._updatedAt = Date.now();
 
             persistState();
             
@@ -5210,18 +5379,7 @@
 
             // Sincronizar en Supabase Cloud con API directa
             try {
-                const res = await supabaseApi.upsert('site_config', {
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: globalConfig.logoImg
-                });
+                const res = await supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig));
                 if (res && res.error) {
                     console.warn('Supabase site_config upsert error:', res.error);
                     state.done(false, 'Guardado local');
@@ -5260,24 +5418,14 @@
             if(document.getElementById('set-address')) globalConfig.address = document.getElementById('set-address').value;
             if(document.getElementById('set-admin-user')) globalConfig.adminUser = document.getElementById('set-admin-user').value;
             if(document.getElementById('set-admin-pass')) globalConfig.adminPass = document.getElementById('set-admin-pass').value;
+            globalConfig._updatedAt = Date.now();
 
             persistState();
             updateContactVisuals();
 
             // Sincronizar en Supabase Cloud con API directa
             try {
-                const res = await supabaseApi.upsert('site_config', {
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: globalConfig.logoImg
-                });
+                const res = await supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig));
                 if (res && res.error) {
                     console.warn('Supabase site_config upsert error:', res.error);
                     state.done(false, 'Guardado local');
