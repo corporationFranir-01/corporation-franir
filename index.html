@@ -5030,7 +5030,7 @@
             if(document.getElementById('set-admin-pass')) document.getElementById('set-admin-pass').value = globalConfig.adminPass || DEFAULT_CONFIG.adminPass;
         }
 
-        function saveSettings(e) {
+        async function saveSettings(e) {
             e.preventDefault();
             if(document.getElementById('set-company-name')) globalConfig.companyName = document.getElementById('set-company-name').value;
             if(document.getElementById('set-ruc')) globalConfig.ruc = document.getElementById('set-ruc').value;
@@ -5042,26 +5042,35 @@
             if(document.getElementById('set-admin-pass')) globalConfig.adminPass = document.getElementById('set-admin-pass').value;
 
             persistState();
+            updateContactVisuals();
 
             // Sincronizar en Supabase
             if (supabaseClient) {
-                supabaseClient.from('site_config').upsert({
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: globalConfig.logoImg
-                }).then(({ error }) => {
-                    if (error) console.warn('Supabase site_config upsert error:', error);
-                });
+                try {
+                    const { error } = await supabaseClient.from('site_config').upsert({
+                        id: 'global_config',
+                        company_name: globalConfig.companyName,
+                        ruc: globalConfig.ruc,
+                        wa_phone: globalConfig.waPhone,
+                        phone_display: globalConfig.phoneDisplay,
+                        email: globalConfig.email,
+                        address: globalConfig.address,
+                        brand_height: parseInt(globalConfig.brandHeight || 55),
+                        logo_height: parseInt(globalConfig.logoHeight || 85),
+                        logo_url: globalConfig.logoImg
+                    });
+                    if (error) {
+                        console.warn('Supabase site_config upsert error:', error);
+                        showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
+                    } else {
+                        showToast('✅ ¡Ajustes y datos de contacto sincronizados en la nube!', 'success');
+                    }
+                } catch (err) {
+                    showToast('Error de conexión con Supabase: ' + err.message, 'error');
+                }
+            } else {
+                showToast('Ajustes guardados localmente', 'info');
             }
-
-            showToast('Ajustes, RUC y datos de contacto actualizados correctamente');
         }
 
         function handleScrollReveal() {
