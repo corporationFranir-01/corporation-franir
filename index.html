@@ -1295,7 +1295,7 @@
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
                     <button type="button" onclick="closeBrandModal()" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 text-xs font-bold font-heading tracking-wider transition">Cancelar</button>
-                    <button type="submit" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold font-heading tracking-wider shadow-lg shadow-orange-500/20">GUARDAR MARCA</button>
+                    <button type="submit" id="btn-save-brand" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold font-heading tracking-wider shadow-lg shadow-orange-500/20">GUARDAR MARCA</button>
                 </div>
             </form>
         </div>
@@ -1386,7 +1386,7 @@
                 
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
                     <button type="button" onclick="closeHeroSlideModal()" class="px-5 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-100 text-gray-600 text-xs font-bold font-heading tracking-wider transition">Cancelar</button>
-                    <button type="submit" class="btn-primary px-7 py-2.5 rounded-xl text-xs font-bold font-heading tracking-wider shadow-lg shadow-orange-500/20 flex items-center gap-2">
+                    <button type="submit" id="btn-save-hero-slide" class="btn-primary px-7 py-2.5 rounded-xl text-xs font-bold font-heading tracking-wider shadow-lg shadow-orange-500/20 flex items-center gap-2">
                         <i class="fas fa-save"></i> GUARDAR FOTO
                     </button>
                 </div>
@@ -1847,7 +1847,7 @@
                             
                             <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
                                 <button type="button" onclick="adminNav('products')" class="px-6 py-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 transition text-xs font-heading tracking-wider font-bold">CANCELAR</button>
-                                <button type="submit" class="btn-primary px-8 py-2.5 rounded-xl text-xs font-heading tracking-wider font-bold shadow-lg shadow-orange-500/20">GUARDAR PRODUCTO</button>
+                                <button type="submit" id="btn-save-product" class="btn-primary px-8 py-2.5 rounded-xl text-xs font-heading tracking-wider font-bold shadow-lg shadow-orange-500/20">GUARDAR PRODUCTO</button>
                             </div>
                         </form>
                     </div>
@@ -1923,7 +1923,7 @@
                             
                             <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
                                 <button type="button" onclick="adminNav('categories')" class="px-6 py-2.5 rounded-xl text-xs font-heading tracking-wider font-bold border border-gray-300 text-gray-600 hover:bg-gray-100 transition">CANCELAR</button>
-                                <button type="submit" class="btn-primary px-8 py-2.5 rounded-xl text-xs font-heading tracking-wider font-bold shadow-lg shadow-orange-500/20">GUARDAR CATEGORÍA</button>
+                                <button type="submit" id="btn-save-category" class="btn-primary px-8 py-2.5 rounded-xl text-xs font-heading tracking-wider font-bold shadow-lg shadow-orange-500/20">GUARDAR CATEGORÍA</button>
                             </div>
                         </form>
                     </div>
@@ -2052,7 +2052,7 @@
                             </div>
                             
                             <div class="flex justify-end gap-4">
-                                <button type="submit" class="btn-primary px-8 py-3 rounded-2xl text-xs font-heading tracking-widest font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20">
+                                <button type="submit" id="btn-save-config" class="btn-primary px-8 py-3 rounded-2xl text-xs font-heading tracking-widest font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20">
                                     <i class="fas fa-save"></i> GUARDAR CAMBIOS VISUALES
                                 </button>
                             </div>
@@ -2144,7 +2144,7 @@
                                             <p class="text-xs font-mono font-bold text-gray-800 truncate">https://rhoamtcqqizuqsyuchnc.supabase.co</p>
                                         </div>
                                         <div class="flex gap-2 shrink-0">
-                                            <button type="button" onclick="syncAllToSupabase()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-heading font-bold tracking-wider shadow-sm flex items-center gap-1.5 transition">
+                                            <button type="button" id="btn-sync-all" onclick="syncAllToSupabase()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-heading font-bold tracking-wider shadow-sm flex items-center gap-1.5 transition">
                                                 <i class="fas fa-cloud-arrow-up"></i> Sincronizar Todo
                                             </button>
                                             <button type="button" onclick="fetchFromSupabase(); showToast('Datos refrescados desde Supabase');" class="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-heading font-bold tracking-wider transition">
@@ -2156,7 +2156,7 @@
                             </div>
 
                             <div class="flex justify-end gap-4">
-                                <button type="submit" class="btn-primary px-8 py-3 rounded-2xl text-xs font-heading tracking-widest font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20">
+                                <button type="submit" id="btn-save-settings" class="btn-primary px-8 py-3 rounded-2xl text-xs font-heading tracking-widest font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20">
                                     <i class="fas fa-save"></i> GUARDAR AJUSTES
                                 </button>
                             </div>
@@ -2362,6 +2362,33 @@
         let supabaseClient = null;
         let isSupabaseOnline = false;
 
+        function setButtonSaving(btn, loadingText = 'Guardando en la nube...') {
+            if (!btn) return { done: () => {} };
+            const originalHtml = btn.innerHTML;
+            const originalClass = btn.className;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i><span>${loadingText}</span>`;
+            
+            return {
+                done: (success = true, msg = '¡Guardado en la Nube! ✅') => {
+                    if (success) {
+                        btn.innerHTML = `<i class="fas fa-check-circle mr-2"></i><span>${msg}</span>`;
+                        btn.classList.remove('btn-primary', 'bg-blue-600', 'bg-orange-600', 'hover:bg-blue-700', 'hover:bg-orange-600');
+                        btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600', 'hover:bg-emerald-700');
+                    } else {
+                        btn.innerHTML = `<i class="fas fa-triangle-exclamation mr-2"></i><span>${msg || 'Error al guardar'}</span>`;
+                        btn.classList.remove('btn-primary', 'bg-blue-600', 'bg-orange-600');
+                        btn.classList.add('bg-red-600', 'text-white', 'border-red-600');
+                    }
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.className = originalClass;
+                        btn.innerHTML = originalHtml;
+                    }, 2800);
+                }
+            };
+        }
+
         function initSupabase() {
             try {
                 if (window.supabase && typeof window.supabase.createClient === 'function') {
@@ -2386,10 +2413,6 @@
                 if (!catErr && catData && catData.length > 0) {
                     mockCategories = catData;
                     localStorage.setItem('franir_categories', JSON.stringify(mockCategories));
-                } else if (!catErr && (!catData || catData.length === 0)) {
-                    // Si la tabla en Supabase está vacía, sembramos los datos por primera vez
-                    await syncAllToSupabase(true);
-                    return;
                 }
 
                 // 2. Obtener Productos
@@ -2420,15 +2443,15 @@
                 // 5. Obtener Configuración
                 const { data: cfgData, error: cfgErr } = await supabaseClient.from('site_config').select('*').eq('id', 'global_config').maybeSingle();
                 if (!cfgErr && cfgData) {
-                    globalConfig.companyName = cfgData.company_name || globalConfig.companyName;
-                    globalConfig.ruc = cfgData.ruc || globalConfig.ruc;
-                    globalConfig.waPhone = cfgData.wa_phone || globalConfig.waPhone;
-                    globalConfig.phoneDisplay = cfgData.phone_display || globalConfig.phoneDisplay;
-                    globalConfig.email = cfgData.email || globalConfig.email;
-                    globalConfig.address = cfgData.address || globalConfig.address;
-                    globalConfig.brandHeight = String(cfgData.brand_height || globalConfig.brandHeight || '55');
-                    globalConfig.logoHeight = String(cfgData.logo_height || globalConfig.logoHeight || '85');
-                    globalConfig.logoImg = cfgData.logo_url || globalConfig.logoImg || '';
+                    if (cfgData.company_name) globalConfig.companyName = cfgData.company_name;
+                    if (cfgData.ruc) globalConfig.ruc = cfgData.ruc;
+                    if (cfgData.wa_phone) globalConfig.waPhone = cfgData.wa_phone;
+                    if (cfgData.phone_display) globalConfig.phoneDisplay = cfgData.phone_display;
+                    if (cfgData.email) globalConfig.email = cfgData.email;
+                    if (cfgData.address) globalConfig.address = cfgData.address;
+                    if (cfgData.brand_height) globalConfig.brandHeight = String(cfgData.brand_height);
+                    if (cfgData.logo_height) globalConfig.logoHeight = String(cfgData.logo_height);
+                    if (cfgData.logo_url !== undefined) globalConfig.logoImg = cfgData.logo_url || '';
                     localStorage.setItem('franir_config', JSON.stringify(globalConfig));
                 }
 
@@ -2445,6 +2468,9 @@
                 if (document.getElementById('admin-products') && !document.getElementById('admin-products').classList.contains('hidden')) {
                     renderAdminProducts();
                 }
+                if (document.getElementById('admin-categories') && !document.getElementById('admin-categories').classList.contains('hidden')) {
+                    renderAdminCategories();
+                }
             } catch (err) {
                 console.warn('Fallo al obtener datos de Supabase, usando cache local:', err);
                 isSupabaseOnline = false;
@@ -2453,8 +2479,15 @@
         }
 
         async function syncAllToSupabase(isAutoSeed = false) {
+            const btn = document.getElementById('btn-sync-all');
+            let state = null;
+            if (btn && !isAutoSeed) {
+                state = setButtonSaving(btn, 'Sincronizando con la Nube...');
+            }
+
             if (!supabaseClient) {
                 showToast('Supabase no está disponible', 'error');
+                if (state) state.done(false, 'No disponible');
                 return;
             }
             if (!isAutoSeed) showToast('Sincronizando todo el catálogo con Supabase en la nube...', 'info');
@@ -2525,11 +2558,13 @@
 
                 isSupabaseOnline = true;
                 updateSupabaseUIBadge(true);
+                if (state) state.done(true, '¡Todo Sincronizado! ✅');
                 if (!isAutoSeed) {
                     showToast('✅ ¡Base de datos en Supabase sincronizada con éxito!', 'success');
                 }
             } catch (err) {
                 console.error('Error al sincronizar con Supabase:', err);
+                if (state) state.done(false, 'Error de sincronización');
                 if (!isAutoSeed) showToast('Error al sincronizar con Supabase: ' + err.message, 'error');
                 isSupabaseOnline = false;
                 updateSupabaseUIBadge(false);
@@ -2978,8 +3013,9 @@
             document.body.appendChild(overlay);
         }
 
-        function saveHeroSlideModal(e) {
+        async function saveHeroSlideModal(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-hero-slide');
             const id = document.getElementById('hero-slide-id').value;
             const titleInput = document.getElementById('hero-slide-title').value.trim();
             const subtitle = document.getElementById('hero-slide-subtitle').value.trim();
@@ -2989,6 +3025,8 @@
                 showToast('Debes subir una foto desde tu PC o seleccionar una sugerida', 'error');
                 return;
             }
+
+            const state = setButtonSaving(btn, 'Guardando foto...');
 
             const formattedTitle = titleInput ? titleInput.toUpperCase() : 'SEGURIDAD PARA <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500">GRANDES DESAFÍOS</span>';
             let slideObj = null;
@@ -3013,25 +3051,39 @@
             }
 
             persistState();
+            renderHeroSlideshow();
+            renderAdminHeroSlidesList();
 
             // Sincronizar en Supabase
             if (supabaseClient && slideObj) {
-                supabaseClient.from('hero_slides').upsert({
-                    id: slideObj.id,
-                    title: slideObj.title,
-                    subtitle: slideObj.subtitle,
-                    img: slideObj.img,
-                    desc: slideObj.desc,
-                    order: heroSlides.indexOf(slideObj)
-                }).then(({ error }) => {
-                    if (error) console.warn('Supabase slide upsert error:', error);
-                });
+                try {
+                    const { error } = await supabaseClient.from('hero_slides').upsert({
+                        id: slideObj.id,
+                        title: slideObj.title,
+                        subtitle: slideObj.subtitle,
+                        img: slideObj.img,
+                        desc: slideObj.desc,
+                        order: heroSlides.indexOf(slideObj)
+                    });
+                    if (error) {
+                        console.warn('Supabase slide upsert error:', error);
+                        state.done(false, 'Error en la nube');
+                        showToast('Error al guardar foto en la nube: ' + error.message, 'error');
+                    } else {
+                        state.done(true, '¡Foto Guardada! ✅');
+                        showToast('Foto de portada guardada en la nube ✅');
+                    }
+                } catch (err) {
+                    state.done(false, 'Error de conexión');
+                }
+            } else {
+                state.done(true, '¡Foto Guardada! ✅');
+                showToast('Foto de portada guardada con éxito');
             }
 
-            renderHeroSlideshow();
-            renderAdminHeroSlidesList();
-            closeHeroSlideModal();
-            showToast('Foto de portada guardada con éxito');
+            setTimeout(() => {
+                closeHeroSlideModal();
+            }, 800);
         }
 
         function deleteHeroSlide(id) {
@@ -3182,8 +3234,9 @@
             }
         }
 
-        function saveBrandModal(e) {
+        async function saveBrandModal(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-brand');
             const id = document.getElementById('brand-modal-id').value;
             const name = document.getElementById('brand-modal-name').value.trim().toUpperCase();
             let logo = document.getElementById('brand-modal-val').value.trim();
@@ -3196,6 +3249,8 @@
                 showToast('Ingresa el nombre de la marca', 'error');
                 return;
             }
+
+            const state = setButtonSaving(btn, 'Guardando marca...');
 
             let brandObj = null;
 
@@ -3227,25 +3282,35 @@
             persistState();
             renderBrandsMarquee();
             renderAdminBrandsList();
-            closeBrandModal();
-            showToast(`Marca "${name}" guardada con éxito`);
 
             // Sincronizar en Supabase
             if (supabaseClient && brandObj) {
-                supabaseClient.from('brands').upsert({
-                    id: brandObj.id,
-                    name: brandObj.name,
-                    logo: brandObj.logo,
-                    icon: brandObj.icon || 'fa-certificate'
-                }).then(({ error }) => {
+                try {
+                    const { error } = await supabaseClient.from('brands').upsert({
+                        id: brandObj.id,
+                        name: brandObj.name,
+                        logo: brandObj.logo,
+                        icon: brandObj.icon || 'fa-certificate'
+                    });
                     if (error) {
                         console.warn('Supabase brand upsert error:', error);
+                        state.done(false, 'Error en la nube');
                         showToast('Error al sincronizar marca en la nube: ' + error.message, 'error');
                     } else {
+                        state.done(true, '¡Marca Guardada! ✅');
                         showToast(`Marca "${name}" sincronizada en la nube ✅`);
                     }
-                });
+                } catch (err) {
+                    state.done(false, 'Error de conexión');
+                }
+            } else {
+                state.done(true, '¡Marca Guardada! ✅');
+                showToast(`Marca "${name}" guardada con éxito`);
             }
+
+            setTimeout(() => {
+                closeBrandModal();
+            }, 800);
         }
 
         function deleteBrand(id) {
@@ -4674,8 +4739,10 @@
             document.getElementById('admin-product-form').classList.remove('hidden');
         }
 
-        function saveProduct(e) {
+        async function saveProduct(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-product');
+            const state = setButtonSaving(btn, 'Guardando producto...');
             
             const id = document.getElementById('prod-id').value;
             const newProduct = {
@@ -4708,17 +4775,26 @@
             
             // Sincronizar en la nube (Supabase)
             if (supabaseClient) {
-                supabaseClient.from('products').upsert(newProduct).then(({ error }) => {
+                try {
+                    const { error } = await supabaseClient.from('products').upsert(newProduct);
                     if (error) {
                         console.warn('Supabase product upsert error:', error);
+                        state.done(false, 'Error en la nube');
                         showToast('Error al sincronizar producto en la nube: ' + error.message, 'error');
                     } else {
+                        state.done(true, '¡Producto Guardado! ✅');
                         showToast(`Producto "${newProduct.name}" sincronizado en la nube ✅`);
                     }
-                });
+                } catch (err) {
+                    state.done(false, 'Error de conexión');
+                }
+            } else {
+                state.done(true, '¡Producto Guardado! ✅');
             }
 
-            adminNav('products');
+            setTimeout(() => {
+                adminNav('products');
+            }, 800);
         }
 
         function deleteProduct(id) {
@@ -4824,8 +4900,9 @@
             adminNav('category-form');
         }
 
-        function saveCategory(e) {
+        async function saveCategory(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-category');
             const id = document.getElementById('cat-id').value;
             const name = document.getElementById('cat-name').value.trim();
             const img = document.getElementById('cat-img-val').value.trim() || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=85&w=800';
@@ -4834,6 +4911,8 @@
                 showToast('Por favor ingrese el nombre de la categoría', 'error');
                 return;
             }
+
+            const state = setButtonSaving(btn, 'Guardando categoría...');
 
             let categoryObj = null;
 
@@ -4863,13 +4942,23 @@
 
             // Sincronizar con Supabase
             if (supabaseClient && categoryObj) {
-                supabaseClient.from('categories').upsert({
-                    id: categoryObj.id,
-                    name: categoryObj.name,
-                    img: categoryObj.img
-                }).then(({ error }) => {
-                    if (error) console.warn('Supabase category upsert error:', error);
-                });
+                try {
+                    const { error } = await supabaseClient.from('categories').upsert({
+                        id: categoryObj.id,
+                        name: categoryObj.name,
+                        img: categoryObj.img
+                    });
+                    if (error) {
+                        console.warn('Supabase category upsert error:', error);
+                        state.done(false, 'Error en la nube');
+                    } else {
+                        state.done(true, '¡Categoría Guardada! ✅');
+                    }
+                } catch (err) {
+                    state.done(false, 'Error de conexión');
+                }
+            } else {
+                state.done(true, '¡Categoría Guardada! ✅');
             }
 
             renderAdminCategories();
@@ -4878,7 +4967,9 @@
             if (document.getElementById('prod-category')) {
                 renderAdminProducts();
             }
-            adminNav('categories');
+            setTimeout(() => {
+                adminNav('categories');
+            }, 800);
         }
 
         function deleteCategory(id) {
@@ -4978,8 +5069,11 @@
             renderAdminBrandsList();
         }
 
-        function saveConfig(e) {
+        async function saveConfig(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-config');
+            const state = setButtonSaving(btn, 'Guardando identidad...');
+
             const newLogo = document.getElementById('cfg-logo-val').value;
             const newHeight = document.getElementById('cfg-logo-height-slider') ? document.getElementById('cfg-logo-height-slider').value : '85';
             const newBrandHeight = document.getElementById('cfg-brand-height-slider') ? document.getElementById('cfg-brand-height-slider').value : '55';
@@ -4993,29 +5087,36 @@
             updateLogoVisuals();
             renderBrandsMarquee();
             renderHeroSlideshow();
-            showToast('Identidad visual y portada guardadas');
 
             // Sincronizar en Supabase
             if (supabaseClient) {
-                supabaseClient.from('site_config').upsert({
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: globalConfig.logoImg
-                }).then(({ error }) => {
+                try {
+                    const { error } = await supabaseClient.from('site_config').upsert({
+                        id: 'global_config',
+                        company_name: globalConfig.companyName,
+                        ruc: globalConfig.ruc,
+                        wa_phone: globalConfig.waPhone,
+                        phone_display: globalConfig.phoneDisplay,
+                        email: globalConfig.email,
+                        address: globalConfig.address,
+                        brand_height: parseInt(globalConfig.brandHeight || 55),
+                        logo_height: parseInt(globalConfig.logoHeight || 85),
+                        logo_url: globalConfig.logoImg
+                    });
                     if (error) {
                         console.warn('Supabase site_config upsert error:', error);
+                        state.done(false, 'Error en la nube');
                         showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
                     } else {
+                        state.done(true, '¡Identidad Guardada! ✅');
                         showToast('Identidad visual sincronizada en la nube ✅');
                     }
-                });
+                } catch (err) {
+                    state.done(false, 'Error de conexión');
+                }
+            } else {
+                state.done(true, '¡Identidad Guardada! ✅');
+                showToast('Identidad visual y portada guardadas');
             }
         }
 
@@ -5032,6 +5133,9 @@
 
         async function saveSettings(e) {
             e.preventDefault();
+            const btn = e.submitter || document.getElementById('btn-save-settings');
+            const state = setButtonSaving(btn, 'Guardando ajustes...');
+
             if(document.getElementById('set-company-name')) globalConfig.companyName = document.getElementById('set-company-name').value;
             if(document.getElementById('set-ruc')) globalConfig.ruc = document.getElementById('set-ruc').value;
             if(document.getElementById('set-wa-phone')) globalConfig.waPhone = document.getElementById('set-wa-phone').value.replace(/[^0-9]/g, '');
@@ -5061,14 +5165,18 @@
                     });
                     if (error) {
                         console.warn('Supabase site_config upsert error:', error);
+                        state.done(false, 'Error en la nube');
                         showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
                     } else {
+                        state.done(true, '¡Ajustes Guardados! ✅');
                         showToast('✅ ¡Ajustes y datos de contacto sincronizados en la nube!', 'success');
                     }
                 } catch (err) {
+                    state.done(false, 'Error de conexión');
                     showToast('Error de conexión con Supabase: ' + err.message, 'error');
                 }
             } else {
+                state.done(true, '¡Ajustes Guardados! ✅');
                 showToast('Ajustes guardados localmente', 'info');
             }
         }
