@@ -2440,8 +2440,8 @@
                 renderBrandsMarquee();
                 renderAdminBrandsList();
                 renderAdminHeroSlidesList();
-                if (currentView === 'products') filterProducts();
-                if (currentView === 'home') renderHomeProducts();
+                if (currentView === 'home') renderHome();
+                if (currentView === 'products') renderProductsCatalog();
                 if (document.getElementById('admin-products') && !document.getElementById('admin-products').classList.contains('hidden')) {
                     renderAdminProducts();
                 }
@@ -3225,6 +3225,10 @@
             }
 
             persistState();
+            renderBrandsMarquee();
+            renderAdminBrandsList();
+            closeBrandModal();
+            showToast(`Marca "${name}" guardada con éxito`);
 
             // Sincronizar en Supabase
             if (supabaseClient && brandObj) {
@@ -3234,14 +3238,14 @@
                     logo: brandObj.logo,
                     icon: brandObj.icon || 'fa-certificate'
                 }).then(({ error }) => {
-                    if (error) console.warn('Supabase brand upsert error:', error);
+                    if (error) {
+                        console.warn('Supabase brand upsert error:', error);
+                        showToast('Error al sincronizar marca en la nube: ' + error.message, 'error');
+                    } else {
+                        showToast(`Marca "${name}" sincronizada en la nube ✅`);
+                    }
                 });
             }
-
-            renderBrandsMarquee();
-            renderAdminBrandsList();
-            closeBrandModal();
-            showToast(`Marca "${name}" guardada con éxito`);
         }
 
         function deleteBrand(id) {
@@ -4705,7 +4709,12 @@
             // Sincronizar en la nube (Supabase)
             if (supabaseClient) {
                 supabaseClient.from('products').upsert(newProduct).then(({ error }) => {
-                    if (error) console.warn('Supabase product upsert error:', error);
+                    if (error) {
+                        console.warn('Supabase product upsert error:', error);
+                        showToast('Error al sincronizar producto en la nube: ' + error.message, 'error');
+                    } else {
+                        showToast(`Producto "${newProduct.name}" sincronizado en la nube ✅`);
+                    }
                 });
             }
 
@@ -4981,6 +4990,11 @@
 
             persistState();
             
+            updateLogoVisuals();
+            renderBrandsMarquee();
+            renderHeroSlideshow();
+            showToast('Identidad visual y portada guardadas');
+
             // Sincronizar en Supabase
             if (supabaseClient) {
                 supabaseClient.from('site_config').upsert({
@@ -4995,14 +5009,14 @@
                     logo_height: parseInt(globalConfig.logoHeight || 85),
                     logo_url: globalConfig.logoImg
                 }).then(({ error }) => {
-                    if (error) console.warn('Supabase site_config upsert error:', error);
+                    if (error) {
+                        console.warn('Supabase site_config upsert error:', error);
+                        showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
+                    } else {
+                        showToast('Identidad visual sincronizada en la nube ✅');
+                    }
                 });
             }
-
-            updateLogoVisuals();
-            renderBrandsMarquee();
-            renderHeroSlideshow();
-            showToast('Identidad visual, portada y marcas guardadas correctamente');
         }
 
         function renderAdminSettings() {
