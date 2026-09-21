@@ -2335,6 +2335,62 @@
         let supabaseClient = null;
         let isSupabaseOnline = false;
 
+        // Cliente REST Nativo Directo: Garantiza 100% de compatibilidad en móviles, laptops y modo incógnito
+        const supabaseApi = {
+            async select(table, query = '*') {
+                try {
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(query)}`, {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
+                } catch (e) {
+                    console.warn(`Error al consultar ${table} en Supabase:`, e);
+                    return null;
+                }
+            },
+            async upsert(table, data) {
+                try {
+                    const payload = Array.isArray(data) ? data : [data];
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'resolution=merge-duplicates,return=representation'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        const errTxt = await res.text();
+                        throw new Error(errTxt || `HTTP ${res.status}`);
+                    }
+                    return { success: true, data: await res.json() };
+                } catch (e) {
+                    console.error(`Error al guardar en ${table}:`, e);
+                    return { error: e };
+                }
+            },
+            async delete(table, id) {
+                try {
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    });
+                    return { success: res.ok };
+                } catch (e) {
+                    return { error: e };
+                }
+            }
+        };
+
         function setButtonSaving(btn, loadingText = 'Guardando en la nube...') {
             if (!btn) return { done: () => {} };
             const originalHtml = btn.innerHTML;
@@ -2366,31 +2422,29 @@
             try {
                 if (window.supabase && typeof window.supabase.createClient === 'function') {
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    isSupabaseOnline = true;
-                    console.log('✅ Supabase conectado a:', SUPABASE_URL);
-                    fetchFromSupabase();
-                } else {
-                    console.warn('⚠️ SDK de Supabase aún no disponible en ventana.');
                 }
             } catch (err) {
-                console.warn('⚠️ No se pudo inicializar Supabase, usando cache local:', err);
-                isSupabaseOnline = false;
+                console.warn('Supabase SDK warning:', err);
             }
+            fetchFromSupabase();
         }
 
         async function fetchFromSupabase() {
-            if (!supabaseClient) return;
             try {
-                // 1. Obtener Categorías
-                const { data: catData, error: catErr } = await supabaseClient.from('categories').select('*');
-                if (!catErr && catData && catData.length > 0) {
+                const [catData, prodData, brandData, slideData, cfgData] = await Promise.all([
+                    supabaseApi.select('categories', '*'),
+                    supabaseApi.select('products', '*'),
+                    supabaseApi.select('brands', '*'),
+                    supabaseApi.select('hero_slides', '*'),
+                    supabaseApi.select('site_config', '*')
+                ]);
+
+                if (catData && catData.length > 0) {
                     mockCategories = catData;
                     localStorage.setItem('franir_categories', JSON.stringify(mockCategories));
                 }
 
-                // 2. Obtener Productos
-                const { data: prodData, error: prodErr } = await supabaseClient.from('products').select('*');
-                if (!prodErr && prodData && prodData.length > 0) {
+                if (prodData && prodData.length > 0) {
                     products = prodData.map(p => ({
                         ...p,
                         visible: p.visible !== false,
@@ -2399,33 +2453,30 @@
                     localStorage.setItem('franir_products', JSON.stringify(products));
                 }
 
-                // 3. Obtener Marcas
-                const { data: brandData, error: brandErr } = await supabaseClient.from('brands').select('*');
-                if (!brandErr && brandData && brandData.length > 0) {
+                if (brandData && brandData.length > 0) {
                     brands = brandData;
                     localStorage.setItem('franir_brands', JSON.stringify(brands));
                 }
 
-                // 4. Obtener Hero Slides
-                const { data: slideData, error: slideErr } = await supabaseClient.from('hero_slides').select('*').order('order', { ascending: true });
-                if (!slideErr && slideData && slideData.length > 0) {
-                    heroSlides = slideData;
+                if (slideData && slideData.length > 0) {
+                    heroSlides = slideData.sort((a, b) => (a.order || 0) - (b.order || 0));
                     localStorage.setItem('franir_hero_slides', JSON.stringify(heroSlides));
                 }
 
-                // 5. Obtener Configuración
-                const { data: cfgData, error: cfgErr } = await supabaseClient.from('site_config').select('*').eq('id', 'global_config').maybeSingle();
-                if (!cfgErr && cfgData) {
-                    if (cfgData.company_name) globalConfig.companyName = cfgData.company_name;
-                    if (cfgData.ruc) globalConfig.ruc = cfgData.ruc;
-                    if (cfgData.wa_phone) globalConfig.waPhone = cfgData.wa_phone;
-                    if (cfgData.phone_display) globalConfig.phoneDisplay = cfgData.phone_display;
-                    if (cfgData.email) globalConfig.email = cfgData.email;
-                    if (cfgData.address) globalConfig.address = cfgData.address;
-                    if (cfgData.brand_height) globalConfig.brandHeight = String(cfgData.brand_height);
-                    if (cfgData.logo_height) globalConfig.logoHeight = String(cfgData.logo_height);
-                    if (cfgData.logo_url !== undefined) globalConfig.logoImg = cfgData.logo_url || '';
-                    localStorage.setItem('franir_config', JSON.stringify(globalConfig));
+                if (cfgData && cfgData.length > 0) {
+                    const cfg = cfgData.find(c => c.id === 'global_config') || cfgData[0];
+                    if (cfg) {
+                        if (cfg.company_name) globalConfig.companyName = cfg.company_name;
+                        if (cfg.ruc) globalConfig.ruc = cfg.ruc;
+                        if (cfg.wa_phone) globalConfig.waPhone = cfg.wa_phone;
+                        if (cfg.phone_display) globalConfig.phoneDisplay = cfg.phone_display;
+                        if (cfg.email) globalConfig.email = cfg.email;
+                        if (cfg.address) globalConfig.address = cfg.address;
+                        if (cfg.brand_height) globalConfig.brandHeight = String(cfg.brand_height);
+                        if (cfg.logo_height) globalConfig.logoHeight = String(cfg.logo_height);
+                        if (cfg.logo_url !== undefined) globalConfig.logoImg = cfg.logo_url || '';
+                        localStorage.setItem('franir_config', JSON.stringify(globalConfig));
+                    }
                 }
 
                 isSupabaseOnline = true;
@@ -2436,7 +2487,10 @@
                 renderBrandsMarquee();
                 renderAdminBrandsList();
                 renderAdminHeroSlidesList();
-                if (currentView === 'home') renderHome();
+                if (currentView === 'home') {
+                    renderHome();
+                    setTimeout(handleScrollReveal, 100);
+                }
                 if (currentView === 'products') renderProductsCatalog();
                 if (document.getElementById('admin-products') && !document.getElementById('admin-products').classList.contains('hidden')) {
                     renderAdminProducts();
@@ -2445,7 +2499,7 @@
                     renderAdminCategories();
                 }
             } catch (err) {
-                console.warn('Fallo al obtener datos de Supabase, usando cache local:', err);
+                console.warn('Fallo al obtener datos de Supabase Cloud:', err);
                 isSupabaseOnline = false;
                 updateSupabaseUIBadge(false);
             }
@@ -2458,17 +2512,12 @@
                 state = setButtonSaving(btn, 'Sincronizando con la Nube...');
             }
 
-            if (!supabaseClient) {
-                showToast('Supabase no está disponible', 'error');
-                if (state) state.done(false, 'No disponible');
-                return;
-            }
             if (!isAutoSeed) showToast('Sincronizando todo el catálogo con Supabase en la nube...', 'info');
 
             try {
                 // Upsert Categorías
                 if (mockCategories.length > 0) {
-                    await supabaseClient.from('categories').upsert(mockCategories.map(c => ({
+                    await supabaseApi.upsert('categories', mockCategories.map(c => ({
                         id: c.id,
                         name: c.name,
                         img: c.img
@@ -2477,7 +2526,7 @@
 
                 // Upsert Productos
                 if (products.length > 0) {
-                    await supabaseClient.from('products').upsert(products.map(p => ({
+                    await supabaseApi.upsert('products', products.map(p => ({
                         id: p.id,
                         code: p.code,
                         name: p.name,
@@ -2495,7 +2544,7 @@
 
                 // Upsert Marcas
                 if (brands.length > 0) {
-                    await supabaseClient.from('brands').upsert(brands.map(b => ({
+                    await supabaseApi.upsert('brands', brands.map(b => ({
                         id: b.id,
                         name: b.name,
                         logo: b.logo,
@@ -2505,7 +2554,7 @@
 
                 // Upsert Hero Slides
                 if (heroSlides.length > 0) {
-                    await supabaseClient.from('hero_slides').upsert(heroSlides.map((s, idx) => ({
+                    await supabaseApi.upsert('hero_slides', heroSlides.map((s, idx) => ({
                         id: s.id,
                         title: s.title,
                         subtitle: s.subtitle,
@@ -2516,7 +2565,7 @@
                 }
 
                 // Upsert Config
-                await supabaseClient.from('site_config').upsert({
+                await supabaseApi.upsert('site_config', {
                     id: 'global_config',
                     company_name: globalConfig.companyName,
                     ruc: globalConfig.ruc,
@@ -3027,10 +3076,10 @@
             renderHeroSlideshow();
             renderAdminHeroSlidesList();
 
-            // Sincronizar en Supabase
-            if (supabaseClient && slideObj) {
+            // Sincronizar en Supabase Cloud con API directa
+            if (slideObj) {
                 try {
-                    const { error } = await supabaseClient.from('hero_slides').upsert({
+                    const res = await supabaseApi.upsert('hero_slides', {
                         id: slideObj.id,
                         title: slideObj.title,
                         subtitle: slideObj.subtitle,
@@ -3038,13 +3087,13 @@
                         desc: slideObj.desc,
                         order: heroSlides.indexOf(slideObj)
                     });
-                    if (error) {
-                        console.warn('Supabase slide upsert error:', error);
-                        state.done(false, 'Error en la nube');
-                        showToast('Error al guardar foto en la nube: ' + error.message, 'error');
+                    if (res && res.error) {
+                        console.warn('Supabase slide upsert error:', res.error);
+                        state.done(false, 'Guardado local');
+                        showToast('Foto guardada localmente', 'warning');
                     } else {
                         state.done(true, '¡Foto Guardada! ✅');
-                        showToast('Foto de portada guardada en la nube ✅');
+                        showToast('✅ ¡Foto de portada sincronizada en la nube!', 'success');
                     }
                 } catch (err) {
                     state.done(false, 'Error de conexión');
@@ -3068,12 +3117,8 @@
             heroSlides = heroSlides.filter(s => s.id !== id);
             persistState();
 
-            // Eliminar en Supabase
-            if (supabaseClient) {
-                supabaseClient.from('hero_slides').delete().eq('id', id).then(({ error }) => {
-                    if (error) console.warn('Supabase slide delete error:', error);
-                });
-            }
+            // Eliminar en Supabase Cloud con API directa
+            supabaseApi.delete('hero_slides', id).catch(err => console.warn('Supabase slide delete error:', err));
 
             currentHeroSlideIndex = 0;
             renderHeroSlideshow();
@@ -3256,22 +3301,22 @@
             renderBrandsMarquee();
             renderAdminBrandsList();
 
-            // Sincronizar en Supabase
-            if (supabaseClient && brandObj) {
+            // Sincronizar en Supabase Cloud con API directa
+            if (brandObj) {
                 try {
-                    const { error } = await supabaseClient.from('brands').upsert({
+                    const res = await supabaseApi.upsert('brands', {
                         id: brandObj.id,
                         name: brandObj.name,
                         logo: brandObj.logo,
                         icon: brandObj.icon || 'fa-certificate'
                     });
-                    if (error) {
-                        console.warn('Supabase brand upsert error:', error);
-                        state.done(false, 'Error en la nube');
-                        showToast('Error al sincronizar marca en la nube: ' + error.message, 'error');
+                    if (res && res.error) {
+                        console.warn('Supabase brand upsert error:', res.error);
+                        state.done(false, 'Guardado local');
+                        showToast('Marca guardada localmente', 'warning');
                     } else {
                         state.done(true, '¡Marca Guardada! ✅');
-                        showToast(`Marca "${name}" sincronizada en la nube ✅`);
+                        showToast(`✅ Marca "${name}" sincronizada en la nube`, 'success');
                     }
                 } catch (err) {
                     state.done(false, 'Error de conexión');
@@ -3291,12 +3336,8 @@
             brands = brands.filter(b => b.id !== id);
             persistState();
 
-            // Eliminar en Supabase
-            if (supabaseClient) {
-                supabaseClient.from('brands').delete().eq('id', id).then(({ error }) => {
-                    if (error) console.warn('Supabase brand delete error:', error);
-                });
-            }
+            // Eliminar en Supabase Cloud con API directa
+            supabaseApi.delete('brands', id).catch(err => console.warn('Supabase brand delete error:', err));
 
             renderBrandsMarquee();
             renderAdminBrandsList();
@@ -3639,6 +3680,7 @@
 
             // Render Carrusel Infinito de Marcas
             renderBrandsMarquee();
+            setTimeout(handleScrollReveal, 50);
         }
 
         // ==========================================
@@ -4719,26 +4761,24 @@
             }
 
             persistState();
-            renderHomeProducts();
+            if (typeof renderHome === 'function') renderHome();
             if (currentView === 'products') filterProducts();
             
-            // Sincronizar en la nube (Supabase)
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.from('products').upsert(newProduct);
-                    if (error) {
-                        console.warn('Supabase product upsert error:', error);
-                        state.done(false, 'Error en la nube');
-                        showToast('Error al sincronizar producto en la nube: ' + error.message, 'error');
-                    } else {
-                        state.done(true, '¡Producto Guardado! ✅');
-                        showToast(`Producto "${newProduct.name}" sincronizado en la nube ✅`);
-                    }
-                } catch (err) {
-                    state.done(false, 'Error de conexión');
+            // Sincronizar en la nube (Supabase REST API)
+            try {
+                const res = await supabaseApi.upsert('products', newProduct);
+                if (res && res.error) {
+                    console.warn('Supabase product upsert error:', res.error);
+                    state.done(false, 'Guardado local');
+                    showToast('Producto guardado localmente', 'warning');
+                } else {
+                    state.done(true, '¡Producto Guardado! ✅');
+                    showToast(`✅ Producto "${newProduct.name}" guardado en la nube`, 'success');
                 }
-            } else {
-                state.done(true, '¡Producto Guardado! ✅');
+            } catch (err) {
+                console.error(err);
+                state.done(false, 'Guardado local');
+                showToast('Guardado localmente', 'info');
             }
 
             setTimeout(() => {
@@ -4766,15 +4806,11 @@
             document.getElementById('btn-confirm-del').onclick = () => {
                 products = products.filter(p => p.id !== id);
                 persistState();
-                renderHomeProducts();
+                if (typeof renderHome === 'function') renderHome();
                 if (currentView === 'products') filterProducts();
                 
-                // Eliminar en la nube (Supabase)
-                if (supabaseClient) {
-                    supabaseClient.from('products').delete().eq('id', id).then(({ error }) => {
-                        if (error) console.warn('Supabase product delete error:', error);
-                    });
-                }
+                // Eliminar en la nube con API directa
+                supabaseApi.delete('products', id).catch(err => console.warn('Supabase product delete error:', err));
 
                 showToast('Producto eliminado');
                 renderAdminProducts();
@@ -4889,19 +4925,20 @@
                 showToast('¡Nueva categoría agregada con éxito!');
             }
 
-            // Sincronizar con Supabase
-            if (supabaseClient && categoryObj) {
+            // Sincronizar con Supabase Cloud con API directa
+            if (categoryObj) {
                 try {
-                    const { error } = await supabaseClient.from('categories').upsert({
+                    const res = await supabaseApi.upsert('categories', {
                         id: categoryObj.id,
                         name: categoryObj.name,
                         img: categoryObj.img
                     });
-                    if (error) {
-                        console.warn('Supabase category upsert error:', error);
-                        state.done(false, 'Error en la nube');
+                    if (res && res.error) {
+                        console.warn('Supabase category upsert error:', res.error);
+                        state.done(false, 'Guardado local');
                     } else {
                         state.done(true, '¡Categoría Guardada! ✅');
+                        showToast(`✅ Categoría "${categoryObj.name}" guardada en la nube`, 'success');
                     }
                 } catch (err) {
                     state.done(false, 'Error de conexión');
@@ -4953,12 +4990,8 @@
                 mockCategories = mockCategories.filter(c => c.id !== id);
                 persistState();
 
-                // Eliminar en Supabase
-                if (supabaseClient) {
-                    supabaseClient.from('categories').delete().eq('id', id).then(({ error }) => {
-                        if (error) console.warn('Supabase category delete error:', error);
-                    });
-                }
+                // Eliminar en Supabase Cloud con API directa
+                supabaseApi.delete('categories', id).catch(err => console.warn('Supabase category delete error:', err));
 
                 renderAdminCategories();
                 renderAdminDashboard();
@@ -5037,35 +5070,31 @@
             renderBrandsMarquee();
             renderHeroSlideshow();
 
-            // Sincronizar en Supabase
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.from('site_config').upsert({
-                        id: 'global_config',
-                        company_name: globalConfig.companyName,
-                        ruc: globalConfig.ruc,
-                        wa_phone: globalConfig.waPhone,
-                        phone_display: globalConfig.phoneDisplay,
-                        email: globalConfig.email,
-                        address: globalConfig.address,
-                        brand_height: parseInt(globalConfig.brandHeight || 55),
-                        logo_height: parseInt(globalConfig.logoHeight || 85),
-                        logo_url: globalConfig.logoImg
-                    });
-                    if (error) {
-                        console.warn('Supabase site_config upsert error:', error);
-                        state.done(false, 'Error en la nube');
-                        showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
-                    } else {
-                        state.done(true, '¡Identidad Guardada! ✅');
-                        showToast('Identidad visual sincronizada en la nube ✅');
-                    }
-                } catch (err) {
-                    state.done(false, 'Error de conexión');
+            // Sincronizar en Supabase Cloud con API directa
+            try {
+                const res = await supabaseApi.upsert('site_config', {
+                    id: 'global_config',
+                    company_name: globalConfig.companyName,
+                    ruc: globalConfig.ruc,
+                    wa_phone: globalConfig.waPhone,
+                    phone_display: globalConfig.phoneDisplay,
+                    email: globalConfig.email,
+                    address: globalConfig.address,
+                    brand_height: parseInt(globalConfig.brandHeight || 55),
+                    logo_height: parseInt(globalConfig.logoHeight || 85),
+                    logo_url: globalConfig.logoImg
+                });
+                if (res && res.error) {
+                    console.warn('Supabase site_config upsert error:', res.error);
+                    state.done(false, 'Guardado local');
+                    showToast('Ajustes guardados localmente', 'warning');
+                } else {
+                    state.done(true, '¡Identidad Guardada! ✅');
+                    showToast('✅ ¡Identidad visual sincronizada en la nube!', 'success');
                 }
-            } else {
-                state.done(true, '¡Identidad Guardada! ✅');
-                showToast('Identidad visual y portada guardadas');
+            } catch (err) {
+                console.error(err);
+                state.done(false, 'Error de conexión');
             }
         }
 
@@ -5097,36 +5126,32 @@
             persistState();
             updateContactVisuals();
 
-            // Sincronizar en Supabase
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.from('site_config').upsert({
-                        id: 'global_config',
-                        company_name: globalConfig.companyName,
-                        ruc: globalConfig.ruc,
-                        wa_phone: globalConfig.waPhone,
-                        phone_display: globalConfig.phoneDisplay,
-                        email: globalConfig.email,
-                        address: globalConfig.address,
-                        brand_height: parseInt(globalConfig.brandHeight || 55),
-                        logo_height: parseInt(globalConfig.logoHeight || 85),
-                        logo_url: globalConfig.logoImg
-                    });
-                    if (error) {
-                        console.warn('Supabase site_config upsert error:', error);
-                        state.done(false, 'Error en la nube');
-                        showToast('Error al sincronizar ajustes en la nube: ' + error.message, 'error');
-                    } else {
-                        state.done(true, '¡Ajustes Guardados! ✅');
-                        showToast('✅ ¡Ajustes y datos de contacto sincronizados en la nube!', 'success');
-                    }
-                } catch (err) {
-                    state.done(false, 'Error de conexión');
-                    showToast('Error de conexión con Supabase: ' + err.message, 'error');
+            // Sincronizar en Supabase Cloud con API directa
+            try {
+                const res = await supabaseApi.upsert('site_config', {
+                    id: 'global_config',
+                    company_name: globalConfig.companyName,
+                    ruc: globalConfig.ruc,
+                    wa_phone: globalConfig.waPhone,
+                    phone_display: globalConfig.phoneDisplay,
+                    email: globalConfig.email,
+                    address: globalConfig.address,
+                    brand_height: parseInt(globalConfig.brandHeight || 55),
+                    logo_height: parseInt(globalConfig.logoHeight || 85),
+                    logo_url: globalConfig.logoImg
+                });
+                if (res && res.error) {
+                    console.warn('Supabase site_config upsert error:', res.error);
+                    state.done(false, 'Guardado local');
+                    showToast('Ajustes guardados localmente', 'warning');
+                } else {
+                    state.done(true, '¡Ajustes Guardados! ✅');
+                    showToast('✅ ¡Ajustes y datos de contacto sincronizados en la nube!', 'success');
                 }
-            } else {
-                state.done(true, '¡Ajustes Guardados! ✅');
-                showToast('Ajustes guardados localmente', 'info');
+            } catch (err) {
+                console.error(err);
+                state.done(false, 'Error de conexión');
+                showToast('Error de conexión con Supabase: ' + err.message, 'error');
             }
         }
 
@@ -5167,28 +5192,42 @@
         window.addEventListener('scroll', handleParallax);
         window.addEventListener('resize', syncHeaderSpacing);
 
-        window.addEventListener('load', () => {
+        function initApp() {
             updateContactVisuals();
             updateLogoVisuals();
             updateQuoteBadges();
             renderHeroSlideshow();
             renderBrandsMarquee();
             syncHeaderSpacing();
-            
-            // Inicializar conexión con Supabase en la nube
             initSupabase();
+        }
 
-            setTimeout(() => {
-                const preloader = document.getElementById('preloader');
-                if(preloader) {
-                    preloader.style.opacity = '0';
-                    setTimeout(() => { preloader.style.display = 'none'; }, 500);
-                }
-                syncHeaderSpacing();
-            }, 500);
-
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
             navigate('home');
         });
+
+        window.addEventListener('load', () => {
+            syncHeaderSpacing();
+            handleScrollReveal();
+            setTimeout(() => {
+                const preloader = document.getElementById('preloader');
+                if (preloader) {
+                    preloader.style.opacity = '0';
+                    setTimeout(() => { preloader.style.display = 'none'; }, 300);
+                }
+                syncHeaderSpacing();
+            }, 200);
+        });
+
+        // Garantizar que la pantalla de carga nunca se quede congelada en celulares con conexión lenta
+        setTimeout(() => {
+            const preloader = document.getElementById('preloader');
+            if (preloader && preloader.style.display !== 'none') {
+                preloader.style.opacity = '0';
+                setTimeout(() => { preloader.style.display = 'none'; }, 300);
+            }
+        }, 1200);
     </script>
 </body>
 </html>
