@@ -2176,7 +2176,6 @@
             { id: 'b10', name: 'RIGID', logo: '', icon: 'fa-compass-drafting' },
             { id: 'b11', name: 'ARMBURY', logo: '', icon: 'fa-user-shield' },
             { id: 'b12', name: 'VITALI-INTL', logo: '', icon: 'fa-truck-ramp-box' },
-            { id: 'b13', name: 'CROSBY', logo: '', icon: 'fa-anchor' },
             { id: 'b14', name: 'VITAL', logo: '', icon: 'fa-bolt' }
         ];
 
@@ -2229,7 +2228,9 @@
         // --- Carga de Estado con Persistencia ---
         let mockCategories = JSON.parse(localStorage.getItem('franir_categories')) || DEFAULT_CATEGORIES;
         let products = JSON.parse(localStorage.getItem('franir_products')) || DEFAULT_PRODUCTS;
-        let brands = JSON.parse(localStorage.getItem('franir_brands')) || DEFAULT_BRANDS;
+        let brands = (JSON.parse(localStorage.getItem('franir_brands')) || DEFAULT_BRANDS)
+            .filter(b => b && b.id !== 'b13' && !(b.name && b.name.trim().toUpperCase() === 'CROSBY' && !b.logo));
+        try { localStorage.setItem('franir_brands', JSON.stringify(brands)); } catch(e) {}
         let heroSlides = JSON.parse(localStorage.getItem('franir_hero_slides')) || DEFAULT_HERO_SLIDES;
         let globalConfig = JSON.parse(localStorage.getItem('franir_config')) || DEFAULT_CONFIG;
         
@@ -2507,7 +2508,7 @@
             categories: new Set(JSON.parse(localStorage.getItem('franir_del_cats') || '[]')),
             hero_slides: new Set(JSON.parse(localStorage.getItem('franir_del_slides') || '[]')),
             products: new Set(JSON.parse(localStorage.getItem('franir_del_prods') || '[]')),
-            brands: new Set(JSON.parse(localStorage.getItem('franir_del_brands') || '[]'))
+            brands: new Set(['b13', ...JSON.parse(localStorage.getItem('franir_del_brands') || '[]')])
         };
 
         function markAsDeleted(table, id) {
@@ -2684,7 +2685,7 @@
 
                 // 4. Marcas: Fusión bidireccional inteligente
                 if (brandData && brandData.length > 0) {
-                    const validCloudBrands = brandData.filter(b => !deletedIds.brands.has(String(b.id)));
+                    const validCloudBrands = brandData.filter(b => b.id !== 'b13' && !deletedIds.brands.has(String(b.id)));
                     const mergedBrands = [];
                     const cloudHandledIds = new Set();
                     const brandsToPushToCloud = [];
@@ -2706,13 +2707,24 @@
                     }
 
                     for (const localBrand of brands) {
-                        if (!cloudHandledIds.has(localBrand.id) && !deletedIds.brands.has(String(localBrand.id))) {
-                            mergedBrands.push(localBrand);
-                            brandsToPushToCloud.push(cleanBrandForDb(localBrand));
+                        if (!cloudHandledIds.has(localBrand.id) && localBrand.id !== 'b13' && !deletedIds.brands.has(String(localBrand.id))) {
+                            // Solo conservar marcas locales si el usuario las editó o tienen logo cargado
+                            if (localBrand._updatedAt || (localBrand.logo && localBrand.logo.trim())) {
+                                mergedBrands.push(localBrand);
+                                brandsToPushToCloud.push(cleanBrandForDb(localBrand));
+                            }
                         }
                     }
 
-                    brands = mergedBrands;
+                    // Limpieza estricta: eliminar b13 residual y cualquier duplicado sin logo si ya existe una versión con logo (ej: CROSBY)
+                    brands = mergedBrands.filter((b, idx, arr) => {
+                        if (!b || b.id === 'b13') return false;
+                        if (!b.logo) {
+                            const hasVersionWithLogo = arr.some(other => other.id !== b.id && other.name && other.name.trim().toUpperCase() === b.name.trim().toUpperCase() && other.logo);
+                            if (hasVersionWithLogo) return false;
+                        }
+                        return true;
+                    });
                     persistState();
 
                     if (brandsToPushToCloud.length > 0) {
@@ -3434,7 +3446,15 @@
             if (!track) return;
 
             const bh = parseInt(globalConfig.brandHeight || '48');
-            const displayList = brands.length > 0 ? [...brands, ...brands] : [...DEFAULT_BRANDS, ...DEFAULT_BRANDS];
+            const validBrands = brands.filter((b, idx, arr) => {
+                if (!b || b.id === 'b13') return false;
+                if (!b.logo) {
+                    const hasWithLogo = arr.some(other => other.id !== b.id && other.name && other.name.trim().toUpperCase() === b.name.trim().toUpperCase() && other.logo);
+                    if (hasWithLogo) return false;
+                }
+                return true;
+            });
+            const displayList = validBrands.length > 0 ? [...validBrands, ...validBrands] : [];
 
             track.innerHTML = displayList.map(b => `
                 <div onclick="filterByBrand('${b.name}')" class="brand-glow-card group bg-white border-2 border-white hover:border-brand px-6 py-3 rounded-2xl flex items-center justify-center cursor-pointer shrink-0 shadow-2xl select-none transition-all duration-300 transform hover:-translate-y-1 hover:scale-105" style="min-width: 155px; height: ${bh + 26}px;" title="${b.name}">
@@ -3474,7 +3494,16 @@
             const container = document.getElementById('admin-brands-list-container');
             if (!container) return;
 
-            container.innerHTML = brands.map(b => `
+            const validBrands = brands.filter((b, idx, arr) => {
+                if (!b || b.id === 'b13') return false;
+                if (!b.logo) {
+                    const hasWithLogo = arr.some(other => other.id !== b.id && other.name && other.name.trim().toUpperCase() === b.name.trim().toUpperCase() && other.logo);
+                    if (hasWithLogo) return false;
+                }
+                return true;
+            });
+
+            container.innerHTML = validBrands.map(b => `
                 <div class="bg-white border border-gray-200 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-sm hover:shadow-md hover:border-brand/40 transition-all">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-16 h-12 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-700 shrink-0 overflow-hidden p-1 shadow-sm">
