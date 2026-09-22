@@ -2701,15 +2701,33 @@
                     for (const cloudProd of validCloudProds) {
                         cloudHandledIds.add(cloudProd.id);
                         const localProd = products.find(p => p.id === cloudProd.id);
-                        if (localProd && localProd._updatedAt) {
-                            mergedProds.push(localProd);
-                            if (localProd.name !== cloudProd.name || localProd.img !== cloudProd.img || localProd.category !== cloudProd.category || getProductPdfUrl(localProd) !== getProductPdfUrl(cloudProd)) {
+                        const rawDesc = cloudProd.desc || '';
+                        const customPdf = getProductPdfUrl({ desc: rawDesc });
+                        const cleanDesc = getProductCleanDesc(rawDesc);
+
+                        if (localProd) {
+                            // Si en la nube hay una ficha técnica configurada, actualizarla siempre en el dispositivo (celular o PC)
+                            if (customPdf) {
+                                localProd.pdf = customPdf;
+                                localProd.desc = cleanDesc;
+                                pdfDb.set(cloudProd.id, customPdf);
+                            }
+                            const localPdf = getProductPdfUrl(localProd);
+                            if (localPdf && !customPdf) {
                                 prodsToPushToCloud.push(cleanProductForDb(localProd));
                             }
+                            mergedProds.push({
+                                ...cloudProd,
+                                ...localProd,
+                                desc: cleanDesc,
+                                pdf: localPdf || customPdf,
+                                visible: localProd.visible !== false,
+                                featured: !!localProd.featured
+                            });
                         } else {
-                            const rawDesc = cloudProd.desc || '';
-                            const customPdf = getProductPdfUrl({ desc: rawDesc });
-                            const cleanDesc = getProductCleanDesc(rawDesc);
+                            if (customPdf) {
+                                pdfDb.set(cloudProd.id, customPdf);
+                            }
                             mergedProds.push({
                                 ...cloudProd,
                                 desc: cleanDesc,
@@ -2729,6 +2747,15 @@
 
                     products = mergedProds;
                     persistState();
+
+                    if (typeof renderHome === 'function') renderHome();
+                    if (currentView === 'products') filterProducts();
+                    if (currentView === 'detail' && typeof currentDetailProductId !== 'undefined' && currentDetailProductId) {
+                        renderProductDetail(currentDetailProductId);
+                    }
+                    if (currentView === 'admin' && typeof renderAdminProducts === 'function') {
+                        renderAdminProducts();
+                    }
 
                     if (prodsToPushToCloud.length > 0) {
                         supabaseApi.upsert('products', prodsToPushToCloud).catch(err => console.warn('Sync products background error:', err));
@@ -4340,7 +4367,10 @@
             `).join('');
         }
 
+        let currentDetailProductId = null;
+
         function renderProductDetail(productId) {
+            currentDetailProductId = productId;
             const product = products.find(p => p.id === productId);
             if (!product) { navigate('products'); return; }
             
@@ -5101,6 +5131,22 @@
             showToast('Ficha Técnica personalizada eliminada. Se usará formato oficial automático.');
         }
 
+        function dataUriToBlob(dataUri) {
+            try {
+                const parts = dataUri.split(',');
+                const mime = parts[0].match(/:(.*?);/)[1] || 'application/pdf';
+                const bstr = atob(parts[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new Blob([u8arr], { type: mime });
+            } catch(e) {
+                return null;
+            }
+        }
+
         async function downloadProductDatasheetPDF(productId, directDownload = false) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
@@ -5116,12 +5162,30 @@
                     showToast('Abriendo Ficha Técnica en PDF...');
                     return;
                 } else if (customPdf.startsWith('data:application/pdf') || customPdf.startsWith('blob:')) {
-                    const link = document.createElement('a');
-                    link.href = customPdf;
-                    link.download = `Ficha_Tecnica_${(product.code || 'FRANIR').replace(/\s+/g, '_')}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    const blob = customPdf.startsWith('blob:') ? null : dataUriToBlob(customPdf);
+                    const blobUrl = blob ? URL.createObjectURL(blob) : customPdf;
+                    const filename = `Ficha_Tecnica_${(product.code || 'FRANIR').replace(/\s+/g, '_')}.pdf`;
+                    
+                    const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+                    if (isMobile) {
+                        const win = window.open(blobUrl, '_blank');
+                        if (!win) {
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = filename;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
                     showToast('Descargando Ficha Técnica PDF...');
                     return;
                 }
@@ -5186,10 +5250,10 @@
                     </div>
                 </div>
 
-                <!-- Contenido Principal: Imagen + Ficha de Especificaciones -->
-                <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 16px; margin-bottom: 16px; align-items: start;">
+                <!-- Contenido Principal: Imagen + Ficha de Especificaciones (Adaptable Celular / Desktop) -->
+                <div class="grid grid-cols-1 md:grid-cols-[1fr_1.35fr] gap-4 mb-4 items-start">
                     <!-- Imagen del Producto -->
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px;">
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
                         <img src="${product.img}" alt="${product.name}" style="max-height: 190px; max-width: 100%; object-fit: contain; margin-bottom: 8px;">
                         <span style="font-size: 8px; color: #64748b; font-style: italic;">Foto referencial del producto suministrado</span>
                     </div>
@@ -5244,8 +5308,8 @@
                     </div>
                 </div>
 
-                <!-- Bloques de Garantía & Cumplimiento Normativo -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <!-- Bloques de Garantía & Cumplimiento Normativo (Adaptable Celular) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px;">
                         <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #166534; text-transform: uppercase;">✔ CERTIFICACIÓN Y CONTROL DE CALIDAD</h4>
                         <p style="margin: 0; font-size: 8.5px; color: #14532d; line-height: 1.35;">Producto inspeccionado y ensayado bajo estándares internacionales. Se emite Certificado de Calidad del Fabricante contra entrega a solicitud del cliente.</p>
@@ -5541,13 +5605,14 @@
             
             const id = document.getElementById('prod-id').value;
             const targetId = id || generateId();
-            const pdfVal = document.getElementById('prod-pdf')?.value || '';
+            const pdfVal = (document.getElementById('prod-pdf')?.value || '').trim();
             
-            let cloudPdf = '';
-            if (pdfVal.startsWith('http')) {
-                cloudPdf = pdfVal;
-            } else if (pdfVal.startsWith('data:application/pdf')) {
+            let cloudPdf = pdfVal;
+            if (pdfVal.startsWith('data:application/pdf')) {
                 await pdfDb.set(targetId, pdfVal);
+                if (pdfVal.length > 2.5 * 1024 * 1024) {
+                    showToast('PDF pesado guardado en este equipo. Para sincronizarlo con tu celular te recomendamos un archivo menor a 2MB o enlace web.', 'warning');
+                }
             }
 
             const newProduct = {
