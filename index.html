@@ -1170,6 +1170,45 @@
     </div>
 
     <!-- ========================================== -->
+    <!-- MODAL DE FICHA TÉCNICA EN PDF (PRODUCTOS)  -->
+    <!-- ========================================== -->
+    <div id="datasheet-modal" onclick="if(event.target === this) closeDatasheetModal()" class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[96vh] flex flex-col overflow-hidden animate-fadeIn">
+            <!-- Modal Header Bar -->
+            <div class="px-4 sm:px-6 py-3.5 bg-black border-b border-[#222] flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 shrink-0">
+                        <i class="fas fa-file-pdf text-lg"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="font-heading font-bold text-white text-sm sm:text-base tracking-wider truncate" id="datasheet-modal-title">FICHA TÉCNICA DEL PRODUCTO</h3>
+                        <p class="text-[11px] text-gray-400 truncate">Previsualización, descarga en PDF oficial y formato para impresión</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadCurrentDatasheetPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 sm:px-4 py-2 rounded-lg text-xs font-heading font-bold tracking-wider flex items-center gap-1.5 shadow-lg active:scale-95 transition" title="Descargar Ficha Técnica en PDF">
+                        <i class="fas fa-file-arrow-down"></i> <span class="hidden xs:inline">DESCARGAR</span> PDF
+                    </button>
+                    <button onclick="printDatasheetModal()" class="bg-[#222] hover:bg-[#333] text-gray-200 border border-gray-700 px-3 py-2 rounded-lg text-xs font-heading tracking-wider flex items-center gap-1.5 transition" title="Imprimir Ficha Técnica">
+                        <i class="fas fa-print"></i> <span class="hidden sm:inline">IMPRIMIR</span>
+                    </button>
+                    <button onclick="closeDatasheetModal()" class="w-8 h-8 rounded-lg bg-[#222] text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center ml-1" title="Cerrar visor">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body: A4 Paper Preview Container -->
+            <div class="p-3 sm:p-6 md:p-8 overflow-y-auto bg-[#0a0a0a] flex justify-center">
+                <div id="datasheet-modal-content" class="bg-white text-gray-900 shadow-2xl rounded p-6 sm:p-10 w-full max-w-3xl font-sans text-xs">
+                    <!-- Dynamic PDF Datasheet Rendered via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
     <!-- MODAL DE EDICIÓN / ADICIÓN DE MARCA        -->
     <!-- ========================================== -->
     <div id="brand-modal" onclick="if(event.target === this) closeBrandModal()" class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
@@ -1752,6 +1791,39 @@
                                         </div>
                                         
                                         <input type="hidden" id="prod-img">
+                                    </div>
+
+                                    <!-- Ficha Técnica en PDF -->
+                                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-2.5">
+                                        <div class="flex items-center justify-between">
+                                            <label class="block text-xs text-gray-800 font-bold font-heading tracking-wider flex items-center gap-1.5">
+                                                <i class="fas fa-file-pdf text-red-600"></i> FICHA TÉCNICA (PDF)
+                                            </label>
+                                            <span class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">Auto / Manual</span>
+                                        </div>
+                                        <div class="flex items-center gap-3 border-b border-gray-200 pb-2">
+                                            <button type="button" id="tab-pdf-auto" onclick="setPdfMode('auto')" class="text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors">Generación Automática</button>
+                                            <button type="button" id="tab-pdf-custom" onclick="setPdfMode('custom')" class="text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors">Enlace o Archivo PDF</button>
+                                        </div>
+                                        <div id="mode-pdf-auto" class="text-xs text-gray-600 bg-white p-3 rounded-xl border border-gray-200 flex items-start gap-2">
+                                            <i class="fas fa-wand-magic-sparkles text-brand text-sm mt-0.5"></i>
+                                            <div>
+                                                <span class="font-bold text-gray-800">Generación Automática Activa</span>
+                                                <p class="text-[11px] text-gray-500 mt-0.5">Se creará y descargará automáticamente un PDF oficial estandarizado de Corporation Franir con los datos y especificaciones de este producto.</p>
+                                            </div>
+                                        </div>
+                                        <div id="mode-pdf-custom" class="hidden space-y-2">
+                                            <input type="url" id="prod-pdf-url" placeholder="https://ejemplo.com/ficha-tecnica.pdf" class="input-dark w-full p-2.5 rounded-xl text-xs" oninput="document.getElementById('prod-pdf').value = this.value; updatePdfStatusText();">
+                                            <div class="flex items-center gap-2">
+                                                <label class="flex-1 bg-white border border-gray-300 hover:border-brand rounded-xl p-2.5 text-center cursor-pointer transition text-xs text-gray-700 font-semibold flex items-center justify-center gap-1.5 shadow-sm">
+                                                    <i class="fas fa-file-arrow-up text-red-600 text-sm"></i> Subir archivo PDF
+                                                    <input type="file" id="prod-pdf-upload" accept="application/pdf" class="hidden" onchange="handleProductPdfUpload(event)">
+                                                </label>
+                                                <button type="button" onclick="clearProductPdf()" class="px-3 py-2.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-xl transition font-bold" title="Limpiar PDF"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                            <p id="prod-pdf-status" class="text-[10px] text-emerald-600 font-bold truncate"></p>
+                                        </div>
+                                        <input type="hidden" id="prod-pdf">
                                     </div>
                                 </div>
 
@@ -2421,7 +2493,28 @@
             };
         }
 
+        function getProductPdfUrl(p) {
+            if (!p) return '';
+            if (p.pdf && p.pdf.trim()) return p.pdf.trim();
+            if (p.desc) {
+                const match = p.desc.match(/\[FICHA_PDF:\s*([^\]]+)\]/i);
+                if (match && match[1]) return match[1].trim();
+            }
+            return '';
+        }
+
+        function getProductCleanDesc(p) {
+            if (!p) return '';
+            const desc = (typeof p === 'string') ? p : (p.desc || '');
+            return desc.replace(/\n*\[FICHA_PDF:\s*[^\]]+\]/gi, '').trim();
+        }
+
         function cleanProductForDb(p) {
+            let finalDesc = getProductCleanDesc(p);
+            const customPdf = getProductPdfUrl(p);
+            if (customPdf) {
+                finalDesc = finalDesc ? `${finalDesc}\n\n[FICHA_PDF: ${customPdf}]` : `[FICHA_PDF: ${customPdf}]`;
+            }
             return {
                 id: String(p.id),
                 code: String(p.code || ''),
@@ -2432,7 +2525,7 @@
                 material: String(p.material || ''),
                 norm: String(p.norm || ''),
                 img: String(p.img || ''),
-                desc: String(p.desc || ''),
+                desc: finalDesc,
                 visible: p.visible !== false,
                 featured: !!p.featured
             };
@@ -2610,12 +2703,17 @@
                         const localProd = products.find(p => p.id === cloudProd.id);
                         if (localProd && localProd._updatedAt) {
                             mergedProds.push(localProd);
-                            if (localProd.name !== cloudProd.name || localProd.img !== cloudProd.img || localProd.category !== cloudProd.category) {
+                            if (localProd.name !== cloudProd.name || localProd.img !== cloudProd.img || localProd.category !== cloudProd.category || getProductPdfUrl(localProd) !== getProductPdfUrl(cloudProd)) {
                                 prodsToPushToCloud.push(cleanProductForDb(localProd));
                             }
                         } else {
+                            const rawDesc = cloudProd.desc || '';
+                            const customPdf = getProductPdfUrl({ desc: rawDesc });
+                            const cleanDesc = getProductCleanDesc(rawDesc);
                             mergedProds.push({
                                 ...cloudProd,
+                                desc: cleanDesc,
+                                pdf: customPdf,
                                 visible: cloudProd.visible !== false,
                                 featured: !!cloudProd.featured
                             });
@@ -3961,7 +4059,8 @@
                     </div>
                     <div class="border-t border-gray-100 pt-3 flex gap-2 items-center">
                         <button onclick="addToQuote('${p.id}')" class="flex-grow btn-primary py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform"><i class="fas fa-plus"></i> Cotizar</button>
-                        <button onclick="navigate('detail', '${p.id}')" class="p-2.5 min-h-[44px] min-w-[44px] border border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-xl text-xs transition-colors flex items-center justify-center" title="Ver ficha técnica"><i class="fas fa-eye text-sm"></i></button>
+                        <button onclick="downloadProductDatasheetPDF('${p.id}')" class="p-2.5 min-h-[44px] min-w-[44px] border border-red-200 hover:border-red-500 hover:bg-red-50 text-red-600 rounded-xl text-xs transition-colors flex items-center justify-center" title="Descargar Ficha Técnica PDF"><i class="fas fa-file-pdf text-sm"></i></button>
+                        <button onclick="navigate('detail', '${p.id}')" class="p-2.5 min-h-[44px] min-w-[44px] border border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-xl text-xs transition-colors flex items-center justify-center" title="Ver detalle del producto"><i class="fas fa-eye text-sm"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -4230,10 +4329,11 @@
                             <div class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full font-mono font-bold">${p.brand || 'FRANIR'}</div>
                         </div>
                         <h3 class="font-bold text-sm sm:text-base text-gray-900 mb-1.5 sm:mb-2 cursor-pointer hover:text-blue-600 transition-colors line-clamp-2" onclick="navigate('detail', '${p.id}')">${p.name}</h3>
-                        <p class="text-xs text-gray-600 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">${p.desc}</p>
+                        <p class="text-xs text-gray-600 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">${getProductCleanDesc(p)}</p>
                     </div>
                     <div class="flex gap-2 pt-3 border-t border-gray-100">
-                        <button onclick="addToQuote('${p.id}')" class="flex-1 btn-primary py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform"><i class="fas fa-plus"></i> AGREGAR A COTIZAR</button>
+                        <button onclick="addToQuote('${p.id}')" class="flex-1 btn-primary py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform"><i class="fas fa-plus"></i> COTIZAR</button>
+                        <button onclick="downloadProductDatasheetPDF('${p.id}')" class="px-3 min-h-[44px] min-w-[44px] border border-red-200 hover:border-red-500 hover:bg-red-50 text-red-600 rounded-xl text-xs transition-colors flex items-center justify-center" title="Descargar Ficha Técnica PDF"><i class="fas fa-file-pdf text-base"></i></button>
                         <button onclick="navigate('detail', '${p.id}')" class="px-3 min-h-[44px] min-w-[44px] border border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-xl text-xs transition-colors flex items-center justify-center" title="Ver detalle"><i class="fas fa-info-circle text-base"></i></button>
                     </div>
                 </div>
@@ -4269,7 +4369,7 @@
                             </div>
                             
                             <h1 class="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 sm:mb-4">${product.name}</h1>
-                            <p class="text-gray-600 text-xs sm:text-sm leading-relaxed mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-gray-100">${product.desc}</p>
+                            <p class="text-gray-600 text-xs sm:text-sm leading-relaxed mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-gray-100">${getProductCleanDesc(product)}</p>
                             
                             <h3 class="font-heading font-bold text-xs sm:text-sm tracking-widest mb-3 sm:mb-4 text-blue-600 uppercase flex items-center gap-2">
                                 <i class="fas fa-microchip text-xs"></i> ESPECIFICACIONES TÉCNICAS
@@ -4282,9 +4382,12 @@
                             </div>
                         </div>
 
-                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-gray-100">
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-gray-100 flex-wrap">
                             <button onclick="addToQuote('${product.id}', 1); toggleQuoteDrawer();" class="w-full sm:w-auto min-h-[48px] btn-primary py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold flex-1 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
                                 <i class="fas fa-clipboard-list text-base sm:text-lg"></i> AGREGAR A COTIZACIÓN
+                            </button>
+                            <button onclick="downloadProductDatasheetPDF('${product.id}')" class="w-full sm:w-auto min-h-[48px] bg-red-600 hover:bg-red-700 text-white py-3.5 px-6 rounded-2xl font-heading tracking-wider font-bold transition flex items-center justify-center gap-2 text-xs sm:text-sm shadow-lg active:scale-95">
+                                <i class="fas fa-file-pdf text-base sm:text-lg"></i> FICHA TÉCNICA (PDF)
                             </button>
                             <button onclick="openGeneralWhatsApp('Hola, deseo cotizar el producto: ${product.name} (Código: ${product.code})')" class="w-full sm:w-auto min-h-[48px] bg-[#25D366] hover:bg-[#1ebd5a] text-white py-3.5 px-6 rounded-2xl font-heading tracking-widest font-bold transition flex items-center justify-center gap-2 text-xs sm:text-sm shadow-lg active:scale-95">
                                 <i class="fab fa-whatsapp text-lg sm:text-xl"></i> CONSULTA RÁPIDA
@@ -4866,6 +4969,359 @@
             showToast('Reporte Excel / CSV descargado exitosamente');
         }
 
+        // ==========================================
+        // SISTEMA DE FICHAS TÉCNICAS EN PDF
+        // ==========================================
+        let currentDatasheetProductId = null;
+
+        // Almacenamiento IndexedDB para PDFs pesados subidos localmente (sin límite de 5MB de LocalStorage)
+        const pdfDb = {
+            dbName: 'franir_pdf_store',
+            dbVersion: 1,
+            getDb() {
+                return new Promise((resolve) => {
+                    if (!window.indexedDB) return resolve(null);
+                    const req = indexedDB.open(this.dbName, this.dbVersion);
+                    req.onupgradeneeded = () => {
+                        if (!req.result.objectStoreNames.contains('pdfs')) {
+                            req.result.createObjectStore('pdfs');
+                        }
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            },
+            async set(id, dataUrl) {
+                try {
+                    const db = await this.getDb();
+                    if (!db) return false;
+                    return new Promise((resolve) => {
+                        const tx = db.transaction('pdfs', 'readwrite');
+                        tx.objectStore('pdfs').put(dataUrl, String(id));
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                    });
+                } catch(e) { return false; }
+            },
+            async get(id) {
+                try {
+                    const db = await this.getDb();
+                    if (!db) return '';
+                    return new Promise((resolve) => {
+                        const tx = db.transaction('pdfs', 'readonly');
+                        const req = tx.objectStore('pdfs').get(String(id));
+                        req.onsuccess = () => resolve(req.result || '');
+                        req.onerror = () => resolve('');
+                    });
+                } catch(e) { return ''; }
+            },
+            async remove(id) {
+                try {
+                    const db = await this.getDb();
+                    if (!db) return;
+                    const tx = db.transaction('pdfs', 'readwrite');
+                    tx.objectStore('pdfs').delete(String(id));
+                } catch(e) {}
+            }
+        };
+
+        function setPdfMode(mode) {
+            const btnAuto = document.getElementById('tab-pdf-auto');
+            const btnCustom = document.getElementById('tab-pdf-custom');
+            const divAuto = document.getElementById('mode-pdf-auto');
+            const divCustom = document.getElementById('mode-pdf-custom');
+            if (!btnAuto || !btnCustom) return;
+
+            if (mode === 'auto') {
+                btnAuto.className = "text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors";
+                btnCustom.className = "text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors";
+                if(divAuto) divAuto.classList.remove('hidden');
+                if(divCustom) divCustom.classList.add('hidden');
+                const pdfInput = document.getElementById('prod-pdf');
+                if (pdfInput) pdfInput.value = '';
+                const pdfUrl = document.getElementById('prod-pdf-url');
+                if (pdfUrl) pdfUrl.value = '';
+            } else {
+                btnCustom.className = "text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors";
+                btnAuto.className = "text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors";
+                if(divCustom) divCustom.classList.remove('hidden');
+                if(divAuto) divAuto.classList.add('hidden');
+            }
+            updatePdfStatusText();
+        }
+
+        function updatePdfStatusText() {
+            const statusEl = document.getElementById('prod-pdf-status');
+            const pdfVal = document.getElementById('prod-pdf')?.value || '';
+            if (!statusEl) return;
+            if (pdfVal) {
+                if (pdfVal.startsWith('data:application/pdf')) {
+                    statusEl.innerText = '✔ Archivo PDF cargado y listo para guardar';
+                } else if (pdfVal.startsWith('http')) {
+                    statusEl.innerText = '✔ Enlace PDF asignado: ' + pdfVal;
+                } else {
+                    statusEl.innerText = '✔ Ficha PDF personalizada activa';
+                }
+            } else {
+                statusEl.innerText = '';
+            }
+        }
+
+        function handleProductPdfUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.type !== 'application/pdf') {
+                showToast('Por favor selecciona un archivo PDF válido', 'error');
+                return;
+            }
+            if (file.size > 15 * 1024 * 1024) {
+                showToast('El archivo supera los 15MB permitidos', 'warning');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                document.getElementById('prod-pdf').value = base64;
+                document.getElementById('prod-pdf-url').value = '';
+                updatePdfStatusText();
+                showToast('Ficha Técnica en PDF cargada correctamente ✅');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearProductPdf() {
+            const prodId = document.getElementById('prod-id')?.value;
+            if (prodId) pdfDb.remove(prodId);
+            document.getElementById('prod-pdf').value = '';
+            document.getElementById('prod-pdf-url').value = '';
+            const fileInput = document.getElementById('prod-pdf-upload');
+            if (fileInput) fileInput.value = '';
+            updatePdfStatusText();
+            setPdfMode('auto');
+            showToast('Ficha Técnica personalizada eliminada. Se usará formato oficial automático.');
+        }
+
+        async function downloadProductDatasheetPDF(productId, directDownload = false) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            let customPdf = getProductPdfUrl(product);
+            if (!customPdf) {
+                customPdf = await pdfDb.get(product.id);
+            }
+
+            if (customPdf) {
+                if (customPdf.startsWith('http')) {
+                    window.open(customPdf, '_blank');
+                    showToast('Abriendo Ficha Técnica en PDF...');
+                    return;
+                } else if (customPdf.startsWith('data:application/pdf') || customPdf.startsWith('blob:')) {
+                    const link = document.createElement('a');
+                    link.href = customPdf;
+                    link.download = `Ficha_Tecnica_${(product.code || 'FRANIR').replace(/\s+/g, '_')}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('Descargando Ficha Técnica PDF...');
+                    return;
+                }
+            }
+
+            // Si no tiene PDF manual o es formato estándar, renderizar en modal e iniciar descarga
+            openDatasheetModal(productId);
+            if (directDownload) {
+                setTimeout(() => {
+                    downloadCurrentDatasheetPDF();
+                }, 300);
+            }
+        }
+
+        function openDatasheetModal(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            currentDatasheetProductId = productId;
+            const container = document.getElementById('datasheet-modal-content');
+            const titleEl = document.getElementById('datasheet-modal-title');
+            if (titleEl) titleEl.innerText = `FICHA TÉCNICA: ${product.code} - ${product.name}`;
+
+            const categoryName = mockCategories.find(c => c.id === product.category)?.name || 'General';
+            const cleanDesc = getProductCleanDesc(product) || 'Producto de alta resistencia diseñado bajo rigurosos estándares de seguridad industrial para operaciones de carga y maniobra pesada.';
+            const todayStr = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            const logoSrc = globalConfig.logo || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&q=80';
+
+            container.innerHTML = `
+                <!-- Cabecera Oficial Corporation Franir -->
+                <div style="border-bottom: 2px solid #0072ce; padding-bottom: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${logoSrc}" alt="Corporation Franir" style="height: 52px; max-width: 170px; object-fit: contain;">
+                            <div>
+                                <h2 style="font-size: 15px; font-weight: 800; color: #111; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">${globalConfig.companyName || 'CORPORATION FRANIR E.I.R.L.'}</h2>
+                                <p style="font-size: 10px; color: #555; margin: 2px 0 0 0; font-weight: 600;">R.U.C.: ${globalConfig.ruc || '20615462463'} | Soluciones Industriales e Izaje</p>
+                                <p style="font-size: 9px; color: #777; margin: 1px 0 0 0;">Dir: ${globalConfig.address || 'Lima, Perú'} | Tel: ${globalConfig.phoneDisplay || '+51 927 751 513'} | Email: ${globalConfig.email || 'corporationfranireirl@gmail.com'}</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right; border-left: 2px solid #ff5500; padding-left: 10px;">
+                            <span style="display: inline-block; background: #0072ce; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">DOCUMENTO TÉCNICO OFICIAL</span>
+                            <p style="font-size: 9px; color: #444; margin: 4px 0 0 0; font-family: monospace;"><b>EMISIÓN:</b> ${todayStr}</p>
+                            <p style="font-size: 9px; color: #444; margin: 1px 0 0 0; font-family: monospace;"><b>CÓDIGO:</b> <span style="color: #ff5500; font-weight: bold;">${product.code}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Título del Producto & Insignias -->
+                <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <span style="font-size: 9px; font-weight: bold; color: #0072ce; text-transform: uppercase; letter-spacing: 1px;">CATEGORÍA: ${categoryName}</span>
+                            <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 4px 0; line-height: 1.2;">${product.name}</h1>
+                        </div>
+                        <div style="text-align: right; shrink-0;">
+                            <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; text-transform: uppercase; font-family: monospace;">
+                                ${product.brand || 'FRANIR'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenido Principal: Imagen + Ficha de Especificaciones -->
+                <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 16px; margin-bottom: 16px; align-items: start;">
+                    <!-- Imagen del Producto -->
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px;">
+                        <img src="${product.img}" alt="${product.name}" style="max-height: 190px; max-width: 100%; object-fit: contain; margin-bottom: 8px;">
+                        <span style="font-size: 8px; color: #64748b; font-style: italic;">Foto referencial del producto suministrado</span>
+                    </div>
+
+                    <!-- Tabla de Especificaciones Técnicas -->
+                    <div>
+                        <div style="background: #0072ce; color: #ffffff; padding: 6px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px 6px 0 0;">
+                            ESPECIFICACIONES DEL PRODUCTO
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0; border-top: none;">
+                            <tbody>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569; width: 42%;">CÓDIGO DE PARTE:</td>
+                                    <td style="padding: 7px 10px; font-weight: 800; color: #0f172a; font-family: monospace;">${product.code}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">CAPACIDAD / CARGA:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0072ce;">${product.capacity || 'Estándar Industrial'}</td>
+                                </tr>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MATERIAL / ACABADO:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.material || 'Acero Forjado de Alta Resistencia'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">NORMA / CERTIFICACIÓN:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.norm || 'Cumple Normativas ASME / OSHA'}</td>
+                                </tr>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MARCA / FABRICANTE:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.brand || 'FRANIR'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">FACTOR DE SEGURIDAD:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">4:1 / 5:1 (Conforme a norma aplicable)</td>
+                                </tr>
+                                <tr style="background: #f8fafc;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">DISPONIBILIDAD:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">Stock Disponible / Entrega Inmediata</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Descripción y Aplicaciones -->
+                <div style="margin-bottom: 16px;">
+                    <div style="background: #f1f5f9; padding: 6px 10px; font-size: 10px; font-weight: 800; color: #334155; text-transform: uppercase; border-left: 3px solid #ff5500; margin-bottom: 6px;">
+                        DESCRIPCIÓN TÉCNICA Y RECOMENDACIONES DE USO
+                    </div>
+                    <div style="font-size: 10px; color: #334155; line-height: 1.5; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
+                        ${cleanDesc}
+                    </div>
+                </div>
+
+                <!-- Bloques de Garantía & Cumplimiento Normativo -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #166534; text-transform: uppercase;">✔ CERTIFICACIÓN Y CONTROL DE CALIDAD</h4>
+                        <p style="margin: 0; font-size: 8.5px; color: #14532d; line-height: 1.35;">Producto inspeccionado y ensayado bajo estándares internacionales. Se emite Certificado de Calidad del Fabricante contra entrega a solicitud del cliente.</p>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #1e40af; text-transform: uppercase;">✔ GARANTÍA Y SOPORTE FRANIR</h4>
+                        <p style="margin: 0; font-size: 8.5px; color: #1e3a8a; line-height: 1.35;">Garantía directa de 12 meses contra defectos de fabricación. Soporte técnico especializado en izaje y sujeción de carga industrial.</p>
+                    </div>
+                </div>
+
+                <!-- Pie de Página Oficial -->
+                <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #64748b;">
+                    <div>
+                        <b style="color: #0f172a;">CORPORATION FRANIR E.I.R.L.</b> — Soluciones Integrales para Minería, Pesca y Construcción.
+                        <div style="color: #94a3b8; font-size: 7.5px; margin-top: 1px;">Documento generado automáticamente por el sistema web oficial. Toda reproducción total o parcial debe ser autorizada.</div>
+                    </div>
+                    <div style="text-align: right; shrink-0;">
+                        <span style="border: 1px solid #0072ce; color: #0072ce; padding: 2px 6px; border-radius: 3px; font-weight: bold; text-transform: uppercase;">VALIDADO</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('datasheet-modal').classList.remove('hidden');
+        }
+
+        function closeDatasheetModal() {
+            const modal = document.getElementById('datasheet-modal');
+            if (modal) modal.classList.add('hidden');
+            currentDatasheetProductId = null;
+        }
+
+        function downloadCurrentDatasheetPDF() {
+            const content = document.getElementById('datasheet-modal-content');
+            if (!content) return;
+
+            const product = products.find(p => p.id === currentDatasheetProductId);
+            const prodCode = product ? (product.code || 'FRANIR').replace(/\s+/g, '_') : 'FRANIR';
+            const filename = `Ficha_Tecnica_Franir_${prodCode}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+            showToast('Generando Ficha Técnica oficial en PDF...');
+
+            if (typeof html2pdf !== 'undefined') {
+                const opt = {
+                    margin: [6, 6, 6, 6],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(content).save().then(() => {
+                    showToast('✅ Ficha Técnica PDF descargada correctamente');
+                }).catch(err => {
+                    console.error('Error con html2pdf:', err);
+                    printDatasheetModal();
+                });
+            } else {
+                printDatasheetModal();
+            }
+        }
+
+        function printDatasheetModal() {
+            const content = document.getElementById('datasheet-modal-content');
+            const printArea = document.getElementById('print-area');
+            if (!content || !printArea) return;
+
+            printArea.innerHTML = content.innerHTML;
+            printArea.style.display = 'block';
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    printArea.style.display = 'none';
+                }, 500);
+            }, 100);
+        }
+
         function renderAdminDashboard() {
             document.getElementById('dash-total-prod').innerText = products.length;
             document.getElementById('dash-visible-prod').innerText = products.filter(p => p.visible).length;
@@ -4950,6 +5406,7 @@
                     </td>
                     <td class="p-4 text-right">
                         <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="openDatasheetModal('${p.id}')" class="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold" title="Ficha Técnica PDF"><i class="fas fa-file-pdf"></i></button>
                             <button onclick="editProduct('${p.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded-xl transition text-xs font-bold" title="Editar"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-xl transition text-xs font-bold" title="Eliminar"><i class="fas fa-trash"></i></button>
                         </div>
@@ -5010,12 +5467,21 @@
             const preview = document.getElementById('img-preview');
             preview.src = '';
             preview.classList.add('hidden');
+
+            setPdfMode('auto');
+            const prodPdf = document.getElementById('prod-pdf');
+            if (prodPdf) prodPdf.value = '';
+            const prodPdfUrl = document.getElementById('prod-pdf-url');
+            if (prodPdfUrl) prodPdfUrl.value = '';
+            const prodPdfUpload = document.getElementById('prod-pdf-upload');
+            if (prodPdfUpload) prodPdfUpload.value = '';
+            updatePdfStatusText();
             
             document.getElementById('admin-products').classList.add('hidden');
             document.getElementById('admin-product-form').classList.remove('hidden');
         }
 
-        function editProduct(id) {
+        async function editProduct(id) {
             const product = products.find(p => p.id === id);
             if(!product) return;
 
@@ -5027,7 +5493,7 @@
             document.getElementById('prod-cap').value = product.capacity || '';
             document.getElementById('prod-mat').value = product.material || '';
             document.getElementById('prod-norm').value = product.norm || '';
-            document.getElementById('prod-desc').value = product.desc || '';
+            document.getElementById('prod-desc').value = getProductCleanDesc(product);
             document.getElementById('prod-visible').checked = product.visible;
             document.getElementById('prod-featured').checked = product.featured;
 
@@ -5043,6 +5509,26 @@
                 document.getElementById('img-upload-text').innerText = 'Imagen cargada. Clic para cambiar.';
             }
 
+            let customPdf = getProductPdfUrl(product);
+            if (!customPdf) {
+                customPdf = await pdfDb.get(product.id);
+            }
+
+            const prodPdf = document.getElementById('prod-pdf');
+            if (prodPdf) prodPdf.value = customPdf;
+            if (customPdf) {
+                setPdfMode('custom');
+                const prodPdfUrl = document.getElementById('prod-pdf-url');
+                if (prodPdfUrl) prodPdfUrl.value = customPdf.startsWith('http') ? customPdf : '';
+            } else {
+                setPdfMode('auto');
+                const prodPdfUrl = document.getElementById('prod-pdf-url');
+                if (prodPdfUrl) prodPdfUrl.value = '';
+                const prodPdfUpload = document.getElementById('prod-pdf-upload');
+                if (prodPdfUpload) prodPdfUpload.value = '';
+            }
+            updatePdfStatusText();
+
             document.getElementById('form-title').innerText = `Editar Producto: ${product.code}`;
             document.getElementById('admin-products').classList.add('hidden');
             document.getElementById('admin-product-form').classList.remove('hidden');
@@ -5054,8 +5540,18 @@
             const state = setButtonSaving(btn, 'Guardando producto...');
             
             const id = document.getElementById('prod-id').value;
+            const targetId = id || generateId();
+            const pdfVal = document.getElementById('prod-pdf')?.value || '';
+            
+            let cloudPdf = '';
+            if (pdfVal.startsWith('http')) {
+                cloudPdf = pdfVal;
+            } else if (pdfVal.startsWith('data:application/pdf')) {
+                await pdfDb.set(targetId, pdfVal);
+            }
+
             const newProduct = {
-                id: id || generateId(),
+                id: targetId,
                 code: document.getElementById('prod-code').value,
                 name: document.getElementById('prod-name').value,
                 category: document.getElementById('prod-cat').value,
@@ -5064,7 +5560,8 @@
                 material: document.getElementById('prod-mat').value,
                 norm: document.getElementById('prod-norm').value,
                 img: document.getElementById('prod-img').value || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80',
-                desc: document.getElementById('prod-desc').value,
+                desc: getProductCleanDesc(document.getElementById('prod-desc').value),
+                pdf: cloudPdf,
                 visible: document.getElementById('prod-visible').checked,
                 featured: document.getElementById('prod-featured').checked,
                 _updatedAt: Date.now()
