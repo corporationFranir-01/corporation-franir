@@ -2186,13 +2186,17 @@
         ];
 
         const DEFAULT_PRODUCTS = [
-            { id: 'p1', code: 'TEC-001', name: 'Tecle Manual de Cadena 2T', category: 'cat_tecles', brand: 'Vital', capacity: '2 Toneladas', material: 'Acero Aleado G80', norm: 'CE / ISO 9001', img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80', desc: 'Tecle manual de alta resistencia para izaje pesado. Cadena de carga de aleación tratada térmicamente con doble freno de seguridad.', visible: true, featured: true },
-            { id: 'p2', code: 'ESL-105', name: 'Eslinga de Poliéster Ojo-Ojo 3T', category: 'cat_eslingas', brand: 'SafeLift', capacity: '3 Toneladas (Amarillo)', material: '100% Poliéster Alta Tenacidad', norm: 'EN 1492-1', img: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=600&q=80', desc: 'Eslinga plana de 2 capas con ojos reforzados. Factor de seguridad 7:1. Excelente resistencia a la abrasión y rayos UV.', visible: true, featured: true },
-            { id: 'p3', code: 'ARN-500', name: 'Arnés de Seguridad Cuerpo Entero 4 Argollas', category: 'cat_arneses', brand: 'ProSafe', capacity: '140 kg', material: 'Poliéster Alta Tenacidad', norm: 'ANSI Z359.11', img: 'https://images.unsplash.com/photo-1621905252472-7402660d5b59?w=600&q=80', desc: 'Arnés multipropósito para trabajos en altura, posicionamiento y rescate. Acolchado lumbar ergonómico y perneras confortables.', visible: true, featured: true },
-            { id: 'p4', code: 'LIN-202', name: 'Línea de Vida Doble con Absorbedor de Impacto', category: 'cat_lineas', brand: 'ProSafe', capacity: '140 kg', material: 'Cinta Tubular / Ganchos Acero Forjado', norm: 'ANSI Z359.13', img: 'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=600&q=80', desc: 'Línea de anclaje doble en "Y" con absorbedor de impacto y ganchos estructureros de 2 1/4" para conexión 100% continua.', visible: true, featured: false },
-            { id: 'p5', code: 'GRI-010', name: 'Grillete Tipo Lira Perno Tuerca y Chaveta 4.75T', category: 'cat_izajes', brand: 'Crosby', capacity: '4.75 Toneladas', material: 'Acero Forjado Galvanizado', norm: 'RR-C-271F / ASME B30.26', img: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=600&q=80', desc: 'Grillete de alta resistencia para maniobras críticas de izaje y estrobado. Factor de seguridad 6:1.', visible: true, featured: true },
-            { id: 'p6', code: 'RET-050', name: 'Bloque Retráctil de Cable de Acero 15m', category: 'cat_lineas', brand: 'FallBlock', capacity: '140 kg', material: 'Carcasa Aluminio / Cable Acero Galvanizado 4mm', norm: 'EN 360 / ANSI Z359.14', img: 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?w=600&q=80', desc: 'Sistema retráctil de detención de caídas para trabajos verticales continuos en torres y andamios.', visible: true, featured: false }
+            { id: 'p1', code: 'COR-001', name: 'Cuerda Semiestática 11 mm', category: 'cat_tecles', brand: 'Tendon', capacity: '32 kN', material: 'Poliamida Alta Tenacidad', norm: 'EN 1891 / CE', img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80', desc: 'Cuerda semiestática de alta resistencia para rescate, trabajos en altura y operaciones verticales seguras.', visible: true, featured: true },
+            { id: 'p2', code: 'CF6HR', name: 'Arnés Liniero Reforzado', category: 'cat_izajes', brand: 'JACKTHOR', capacity: '140 kg', material: 'Poliéster Reforzado / Acero Forjado', norm: 'ANSI Z359.11 / OSHA', img: 'https://images.unsplash.com/photo-1621905252472-7402660d5b59?w=600&q=80', desc: 'Arnés de seguridad liniero con faja lumbar ergonómica reforzada y múltiples puntos de anclaje para trabajo en postes y torres.', visible: true, featured: true },
+            { id: 'p3', code: 'C083BB01', name: 'Arnes modelo Astro', category: 'cat_izajes', brand: 'Petzl', capacity: '140 kg', material: 'Poliamida, Poliéster, Aluminio, Acero', norm: 'CE EN 361, EN 358, EN 813, ANSI Z359.11', img: 'https://images.unsplash.com/photo-1621905252472-7402660d5b59?w=600&q=80', desc: 'Arnés ergonómico para acceso por cuerda con bloqueador ventral CROLL integrado. Diseñado para ofrecer confort en suspensión prolongada.', visible: true, featured: true },
+            { id: 'p4', code: 'ESL-1', name: 'Eslinga Poliester de 1"', category: 'cat_eslingas', brand: 'JACKTHOR', capacity: '1 Tonelada (Violeta)', material: '100% Poliéster Alta Tenacidad', norm: 'ASME B30.9 / EN 1492-1', img: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=600&q=80', desc: 'Eslinga plana de poliéster de 1 capa con ojos reforzados para maniobras de izaje seguras y protección de cargas delicadas.', visible: true, featured: false },
+            { id: 'p5', code: 'GR-SRL', name: 'Grillete Forjado SRL', category: 'cat_izajes', brand: 'SRL', capacity: '3.25 Toneladas', material: 'Acero Forjado Galvanizado en Caliente', norm: 'RR-C-271D / ASME B30.26', img: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=600&q=80', desc: 'Grillete tipo lira forjado de alta resistencia con perno roscado y pasador para estrobado y elevación industrial.', visible: true, featured: false },
+            { id: 'p6', code: '3590500', name: 'Bloque Retráctil de Cable de Acero 10m', category: 'cat_seguridad', brand: '3M PROTECTA', capacity: '140 kg', material: 'Carcasa de Termoplástico Resistente al Impacto / Cable de Acero Galvanizado 5mm', norm: 'ANSI Z359.14 Clase B / OSHA 1926.502', img: 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?w=600&q=80', desc: 'Dispositivo anticaídas autorretráctil de 10 metros de cable galvanizado con mosquetón giratorio e indicador de impacto.', visible: true, featured: true },
+            { id: 'p_pgnbx0bz3', code: '11-01-230', name: 'Retráctil SAFEWAZE Doble Latitud 1,8 m con Gancho de Escala', category: 'cat_seguridad', brand: 'Safewase', capacity: '140 kg', material: 'Cinta Dyneema / Poliéster / Ganchos de Acero Estructurero', norm: 'ANSI Z359.14 Clase A / OSHA 1926.502', img: 'https://images.unsplash.com/photo-1534398079543-7ae6d016b86a?w=600&q=80', desc: 'Línea autorretráctil doble con absorbedor de energía externo y mosquetones de gran apertura (gancho escala) para trabajo 100% conectado.', visible: true, featured: false },
+            { id: 'p_6ap1fhq11', code: '3500277', name: '3M DBI-SALA Nano-Lok Edge Anticaídas Autorretráctil de Cable de 2 Brazos 2,4 m con Ganchos Grandes de Aluminio', category: 'cat_seguridad', brand: '3M', capacity: '140 kg', material: 'Cable de Acero Galvanizado / Conectores de Aluminio', norm: 'ANSI Z359.14 Clase B / OSHA / EN 360', img: 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?w=600&q=80', desc: 'Autorretráctil doble diseñado para aplicaciones con trabajo sobre borde afilado (Leading Edge) con absorbedor integrado y conectores ergonómicos.', visible: true, featured: false },
+            { id: 'p_ym8vwupc4', code: 'CANCAMO-JR', name: 'Cáncamo de Anclaje de Acero de Alta Resistencia', category: 'cat_arneses', brand: 'JACKTHOR', capacity: '2.5 Toneladas', material: 'Acero Forjado al Carbono C15E', norm: 'DIN 580 / ASME B18.15', img: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=600&q=80', desc: 'Cáncamo macho giratorio de alta seguridad para puntos de fijación y elevación de maquinaria y estructuras pesadas.', visible: true, featured: false }
         ];
+
 
         const DEFAULT_BRANDS = [
             { id: 'b1', name: 'TORAN', logo: '', icon: 'fa-shield-halved' },
@@ -2396,27 +2400,45 @@
                     return null;
                 }
             },
-            async upsert(table, data) {
-                try {
-                    const payload = Array.isArray(data) ? data : [data];
-                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_KEY}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'resolution=merge-duplicates,return=representation'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!res.ok) {
-                        const errTxt = await res.text();
-                        throw new Error(errTxt || `HTTP ${res.status}`);
+            async upsert(table, data, maxRetries = 2) {
+                const payload = Array.isArray(data) ? data : [data];
+                const bodyStr = JSON.stringify(payload);
+
+                for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 16000);
+
+                        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'resolution=merge-duplicates,return=representation'
+                            },
+                            body: bodyStr,
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        if (!res.ok) {
+                            const errTxt = await res.text();
+                            if (res.status === 413) {
+                                return { error: new Error('Archivo demasiado pesado para la nube (Máximo 2.5MB en base64)'), isPayloadTooLarge: true };
+                            }
+                            throw new Error(errTxt || `HTTP ${res.status}`);
+                        }
+                        return { success: true, data: await res.json() };
+                    } catch (e) {
+                        console.warn(`Intento ${attempt + 1} de guardar en ${table}:`, e);
+                        if (attempt < maxRetries) {
+                            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+                        } else {
+                            console.error(`Error definitivo al guardar en ${table}:`, e);
+                            return { error: e };
+                        }
                     }
-                    return { success: true, data: await res.json() };
-                } catch (e) {
-                    console.error(`Error al guardar en ${table}:`, e);
-                    return { error: e };
                 }
             },
             async delete(table, id) {
@@ -2443,14 +2465,16 @@
             btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i><span>${loadingText}</span>`;
             
             return {
-                done: (success = true, msg = '¡Guardado en la Nube! ✅') => {
-                    if (success) {
-                        btn.innerHTML = `<i class="fas fa-check-circle mr-2"></i><span>${msg}</span>`;
-                        btn.classList.remove('btn-primary', 'bg-blue-600', 'bg-orange-600', 'hover:bg-blue-700', 'hover:bg-orange-600');
+                done: (status = true, msg = '¡Guardado en la Nube! ✅') => {
+                    btn.classList.remove('btn-primary', 'bg-blue-600', 'bg-orange-600', 'hover:bg-blue-700', 'hover:bg-orange-600', 'bg-emerald-600', 'bg-red-600', 'bg-amber-600');
+                    if (status === true || status === 'cloud') {
+                        btn.innerHTML = `<i class="fas fa-check-circle mr-2"></i><span>${msg || '¡Guardado en la Nube! ✅'}</span>`;
                         btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600', 'hover:bg-emerald-700');
+                    } else if (status === 'local') {
+                        btn.innerHTML = `<i class="fas fa-hard-drive mr-2"></i><span>${msg || 'Guardado en Equipo ✅'}</span>`;
+                        btn.classList.add('bg-amber-600', 'text-white', 'border-amber-600', 'hover:bg-amber-700');
                     } else {
                         btn.innerHTML = `<i class="fas fa-triangle-exclamation mr-2"></i><span>${msg || 'Error al guardar'}</span>`;
-                        btn.classList.remove('btn-primary', 'bg-blue-600', 'bg-orange-600');
                         btn.classList.add('bg-red-600', 'text-white', 'border-red-600');
                     }
                     setTimeout(() => {
@@ -2513,7 +2537,10 @@
             let finalDesc = getProductCleanDesc(p);
             const customPdf = getProductPdfUrl(p);
             if (customPdf) {
-                finalDesc = finalDesc ? `${finalDesc}\n\n[FICHA_PDF: ${customPdf}]` : `[FICHA_PDF: ${customPdf}]`;
+                // Si es un enlace web (http/https) o un base64 liviano (< 3.2MB), se almacena en la nube
+                if (customPdf.startsWith('http') || (customPdf.startsWith('data:application/pdf') && customPdf.length < 3.2 * 1024 * 1024)) {
+                    finalDesc = finalDesc ? `${finalDesc}\n\n[FICHA_PDF: ${customPdf}]` : `[FICHA_PDF: ${customPdf}]`;
+                }
             }
             return {
                 id: String(p.id),
@@ -2692,7 +2719,7 @@
                 }
 
                 // 3. Productos: Supabase es la fuente oficial. Las maquetas de prueba por defecto quedan PURGADAS
-                const MOCK_PROD_IDS = new Set(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']);
+                const MOCK_CODES = new Set(['TEC-001', 'ESL-105', 'ARN-500', 'RET-050', 'GRI-010']);
                 if (prodData && prodData.length > 0) {
                     const validCloudProds = prodData.filter(p => !deletedIds.products.has(String(p.id)));
                     const mergedProds = [];
@@ -2737,9 +2764,9 @@
                         }
                     }
 
-                    // Solo conservar productos locales si fueron agregados offline por el usuario (NUNCA maquetas p1-p6)
+                    // Solo conservar productos locales si fueron agregados offline por el usuario (NUNCA maquetas antiguas)
                     for (const localProd of products) {
-                        if (!cloudHandledIds.has(localProd.id) && !deletedIds.products.has(String(localProd.id)) && !MOCK_PROD_IDS.has(localProd.id) && localProd._updatedAt) {
+                        if (!cloudHandledIds.has(localProd.id) && !deletedIds.products.has(String(localProd.id)) && !MOCK_CODES.has(localProd.code) && localProd._updatedAt) {
                             mergedProds.push(localProd);
                             prodsToPushToCloud.push(cleanProductForDb(localProd));
                         }
@@ -2752,7 +2779,7 @@
                         supabaseApi.upsert('products', prodsToPushToCloud).catch(err => console.warn('Sync products background error:', err));
                     }
                 } else if (products && products.length > 0) {
-                    const validLocal = products.filter(p => !deletedIds.products.has(String(p.id)) && !MOCK_PROD_IDS.has(p.id));
+                    const validLocal = products.filter(p => !deletedIds.products.has(String(p.id)) && !MOCK_CODES.has(p.code));
                     if (validLocal.length > 0) {
                         supabaseApi.upsert('products', validLocal.map(cleanProductForDb)).catch(err => console.warn('Seed products error:', err));
                     }
@@ -3092,22 +3119,15 @@
                 updateLogoVisuals();
                 showToast('Guardando logo en la nube...', 'info');
 
-                supabaseApi.upsert('site_config', {
-                    id: 'global_config',
-                    company_name: globalConfig.companyName,
-                    ruc: globalConfig.ruc,
-                    wa_phone: globalConfig.waPhone,
-                    phone_display: globalConfig.phoneDisplay,
-                    email: globalConfig.email,
-                    address: globalConfig.address,
-                    brand_height: parseInt(globalConfig.brandHeight || 55),
-                    logo_height: parseInt(globalConfig.logoHeight || 85),
-                    logo_url: base64
-                }).then(() => {
-                    showToast('✅ ¡Logo guardado y sincronizado en la nube!', 'success');
+                supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig)).then((res) => {
+                    if (res && res.error) {
+                        showToast('Logo guardado en este equipo', 'info');
+                    } else {
+                        showToast('✅ ¡Logo guardado y sincronizado en la nube!', 'success');
+                    }
                 }).catch(err => {
                     console.warn(err);
-                    showToast('Logo guardado localmente', 'warning');
+                    showToast('Logo guardado en este equipo', 'info');
                 });
             }
         }
@@ -3476,14 +3496,14 @@
                     const res = await supabaseApi.upsert('hero_slides', cleanHeroSlideForDb(slideObj, heroSlides.indexOf(slideObj)));
                     if (res && res.error) {
                         console.warn('Supabase slide upsert error:', res.error);
-                        state.done(false, 'Guardado local');
-                        showToast('Foto guardada localmente', 'warning');
+                        state.done('local', 'Guardado en equipo ✅');
+                        showToast('Foto guardada en este equipo. Se sincronizará con la nube automáticamente.', 'info');
                     } else {
                         state.done(true, '¡Foto Guardada! ✅');
                         showToast('✅ ¡Foto de portada sincronizada en la nube!', 'success');
                     }
                 } catch (err) {
-                    state.done(false, 'Error de conexión');
+                    state.done('local', 'Guardado en equipo ✅');
                 }
             } else {
                 state.done(true, '¡Foto Guardada! ✅');
@@ -3719,14 +3739,14 @@
                     const res = await supabaseApi.upsert('brands', cleanBrandForDb(brandObj));
                     if (res && res.error) {
                         console.warn('Supabase brand upsert error:', res.error);
-                        state.done(false, 'Guardado local');
-                        showToast('Marca guardada localmente', 'warning');
+                        state.done('local', 'Guardado en equipo ✅');
+                        showToast('Marca guardada en este equipo. Se sincronizará con la nube automáticamente.', 'info');
                     } else {
                         state.done(true, '¡Marca Guardada! ✅');
                         showToast(`✅ Marca "${name}" sincronizada en la nube`, 'success');
                     }
                 } catch (err) {
-                    state.done(false, 'Error de conexión');
+                    state.done('local', 'Guardado en equipo ✅');
                 }
             } else {
                 state.done(true, '¡Marca Guardada! ✅');
@@ -5099,8 +5119,10 @@
                 showToast('Por favor selecciona un archivo PDF válido', 'error');
                 return;
             }
-            if (file.size > 15 * 1024 * 1024) {
-                showToast('El archivo supera los 15MB permitidos', 'warning');
+            if (file.size > 2.5 * 1024 * 1024) {
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                showToast(`El PDF pesa ${sizeMb} MB. Para que sincronice con la nube en celulares y laptops al instante, usa un PDF menor a 2.5MB o pega el enlace web (Google Drive / Dropbox).`, 'warning');
+                setPdfMode('url');
                 return;
             }
             const reader = new FileReader();
@@ -5698,16 +5720,21 @@
                 const res = await supabaseApi.upsert('products', cleanProductForDb(newProduct));
                 if (res && res.error) {
                     console.warn('Supabase product upsert error:', res.error);
-                    state.done(false, 'Guardado local');
-                    showToast('Producto guardado localmente', 'warning');
+                    if (res.isPayloadTooLarge) {
+                        state.done('local', 'Guardado en equipo (PDF pesado)');
+                        showToast('Guardado en este equipo. El archivo PDF es muy pesado para la nube; usa un enlace web o un PDF menor a 2.5MB.', 'warning');
+                    } else {
+                        state.done('local', 'Guardado en equipo ✅');
+                        showToast('Guardado en este equipo. Se sincronizará con la nube automáticamente.', 'info');
+                    }
                 } else {
                     state.done(true, '¡Producto Guardado! ✅');
                     showToast(`✅ Producto "${newProduct.name}" guardado en la nube`, 'success');
                 }
             } catch (err) {
                 console.error(err);
-                state.done(false, 'Guardado local');
-                showToast('Guardado localmente', 'info');
+                state.done('local', 'Guardado en equipo ✅');
+                showToast('Guardado en este equipo', 'info');
             }
 
             setTimeout(() => {
@@ -5867,13 +5894,14 @@
                     const res = await supabaseApi.upsert('categories', cleanCategoryForDb(categoryObj));
                     if (res && res.error) {
                         console.warn('Supabase category upsert error:', res.error);
-                        state.done(false, 'Guardado local');
+                        state.done('local', 'Guardado en equipo ✅');
+                        showToast('Categoría guardada en este equipo. Se sincronizará con la nube automáticamente.', 'info');
                     } else {
                         state.done(true, '¡Categoría Guardada! ✅');
                         showToast(`✅ Categoría "${categoryObj.name}" guardada en la nube`, 'success');
                     }
                 } catch (err) {
-                    state.done(false, 'Error de conexión');
+                    state.done('local', 'Guardado en equipo ✅');
                 }
             } else {
                 state.done(true, '¡Categoría Guardada! ✅');
@@ -6012,15 +6040,15 @@
                 const res = await supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig));
                 if (res && res.error) {
                     console.warn('Supabase site_config upsert error:', res.error);
-                    state.done(false, 'Guardado local');
-                    showToast('Ajustes guardados localmente', 'warning');
+                    state.done('local', 'Guardado en equipo ✅');
+                    showToast('Ajustes guardados en este equipo. Se sincronizarán con la nube automáticamente.', 'info');
                 } else {
                     state.done(true, '¡Identidad Guardada! ✅');
                     showToast('✅ ¡Identidad visual sincronizada en la nube!', 'success');
                 }
             } catch (err) {
                 console.error(err);
-                state.done(false, 'Error de conexión');
+                state.done('local', 'Guardado en equipo ✅');
             }
         }
 
@@ -6058,16 +6086,16 @@
                 const res = await supabaseApi.upsert('site_config', cleanConfigForDb(globalConfig));
                 if (res && res.error) {
                     console.warn('Supabase site_config upsert error:', res.error);
-                    state.done(false, 'Guardado local');
-                    showToast('Ajustes guardados localmente', 'warning');
+                    state.done('local', 'Guardado en equipo ✅');
+                    showToast('Ajustes guardados en este equipo. Se sincronizarán con la nube automáticamente.', 'info');
                 } else {
                     state.done(true, '¡Ajustes Guardados! ✅');
                     showToast('✅ ¡Ajustes y datos de contacto sincronizados en la nube!', 'success');
                 }
             } catch (err) {
                 console.error(err);
-                state.done(false, 'Error de conexión');
-                showToast('Error de conexión con Supabase: ' + err.message, 'error');
+                state.done('local', 'Guardado en equipo ✅');
+                showToast('Guardado en este equipo', 'info');
             }
         }
 
