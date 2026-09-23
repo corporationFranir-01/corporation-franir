@@ -170,11 +170,14 @@
             100% { background-position: 200% center; }
         }
 
-        /* Views */
+        /* Views & Modals Animation */
         .app-view { display: none; min-height: 100vh; }
         .app-view.active { display: block; animation: fadeIn 0.4s ease; }
         .app-view.active.flex-view { display: flex !important; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleUp { from { transform: scale(0.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.2s ease forwards; }
+        .animate-scaleUp { animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         /* Forms */
         .input-dark {
@@ -330,7 +333,7 @@
     </div>
 
     <!-- Toast Notifications -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed top-5 right-5 z-[30000] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- Floating Quote Drawer Button -->
     <button id="floating-quote-btn" onclick="toggleQuoteDrawer()" class="fixed bottom-24 right-4 md:right-6 z-40 bg-brand text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl shadow-xl shadow-brand/30 hover:scale-110 transition-transform" title="Ver Lista de Cotización">
@@ -2966,7 +2969,7 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const color = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
-            toast.className = `${color} text-white px-6 py-3 rounded shadow-lg transform transition-all duration-300 translate-x-full font-heading tracking-widest text-sm z-50`;
+            toast.className = `${color} text-white px-6 py-3 rounded-2xl shadow-2xl transform transition-all duration-300 translate-x-full font-heading tracking-widest text-sm z-[30000]`;
             toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} mr-2"></i> ${message}`;
             
             container.appendChild(toast);
@@ -3525,33 +3528,104 @@
             }, 800);
         }
 
+        // --- MODAL DE CONFIRMACIÓN PROFESIONAL MULTIUSO (GARANTIZADO SOBRE CUALQUIER VISTA) ---
+        function showFranirConfirm({ title, message, icon = 'fa-trash-can', confirmText = 'ELIMINAR', cancelText = 'CANCELAR', confirmClass = 'bg-red-600 hover:bg-red-700 text-white', onConfirm }) {
+            document.querySelectorAll('.franir-confirm-overlay').forEach(el => el.remove());
+
+            const overlay = document.createElement('div');
+            overlay.className = 'franir-confirm-overlay fixed inset-0 bg-black/80 backdrop-blur-md z-[20000] flex items-center justify-center p-4 animate-fadeIn';
+            overlay.innerHTML = `
+                <div class="bg-[#141414] border border-[#2a2a2a] text-white p-6 sm:p-7 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl transform transition-all scale-100 animate-scaleUp">
+                    <div class="w-16 h-16 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-extrabold text-white text-lg tracking-wider">${title}</h3>
+                        <p class="text-xs text-gray-300 mt-2 leading-relaxed whitespace-pre-line">${message}</p>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button type="button" class="franir-confirm-cancel flex-1 py-3 rounded-xl border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800 text-xs font-heading font-bold tracking-wider transition active:scale-95">
+                            ${cancelText}
+                        </button>
+                        <button type="button" class="franir-confirm-ok flex-1 py-3 rounded-xl ${confirmClass} text-xs font-heading font-bold tracking-wider transition active:scale-95 shadow-lg">
+                            ${confirmText}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const cancelBtn = overlay.querySelector('.franir-confirm-cancel');
+            const okBtn = overlay.querySelector('.franir-confirm-ok');
+
+            const closeDialog = () => {
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.remove(), 200);
+            };
+
+            overlay.onclick = (e) => {
+                if (e.target === overlay) closeDialog();
+            };
+
+            cancelBtn.onclick = () => closeDialog();
+
+            okBtn.onclick = async () => {
+                closeDialog();
+                if (typeof onConfirm === 'function') {
+                    await onConfirm();
+                }
+            };
+        }
+
         function deleteHeroSlide(id) {
             if (heroSlides.length <= 1) {
                 showToast('Debe haber al menos una foto en la portada', 'error');
                 return;
             }
-            if (!confirm('¿Estás seguro de eliminar esta foto de la portada?')) return;
-            markAsDeleted('hero_slides', id);
-            heroSlides = heroSlides.filter(s => s.id !== id);
-            persistState();
 
-            // Eliminar en Supabase Cloud con API directa
-            supabaseApi.delete('hero_slides', id).catch(err => console.warn('Supabase slide delete error:', err));
+            showFranirConfirm({
+                title: '¿Eliminar Foto?',
+                message: '¿Estás seguro de eliminar esta foto del carrusel de portada?\n\nEsta acción también se sincronizará con la nube.',
+                icon: 'fa-images',
+                confirmText: 'SÍ, ELIMINAR',
+                cancelText: 'CANCELAR',
+                onConfirm: async () => {
+                    markAsDeleted('hero_slides', id);
+                    heroSlides = heroSlides.filter(s => s.id !== id);
+                    persistState();
 
-            currentHeroSlideIndex = 0;
-            renderHeroSlideshow();
-            renderAdminHeroSlidesList();
-            showToast('Foto eliminada de la portada');
+                    // Eliminar en Supabase Cloud con API directa
+                    try {
+                        await supabaseApi.delete('hero_slides', id);
+                    } catch (err) {
+                        console.warn('Supabase slide delete error:', err);
+                    }
+
+                    currentHeroSlideIndex = 0;
+                    renderHeroSlideshow();
+                    renderAdminHeroSlidesList();
+                    showToast('✅ Foto eliminada de la portada');
+                }
+            });
         }
 
         function resetDefaultHeroSlides() {
-            if (!confirm('¿Restablecer las fotos de portada a las predeterminadas?')) return;
-            heroSlides = JSON.parse(JSON.stringify(DEFAULT_HERO_SLIDES));
-            persistState();
-            currentHeroSlideIndex = 0;
-            renderHeroSlideshow();
-            renderAdminHeroSlidesList();
-            showToast('Fotos de portada restablecidas');
+            showFranirConfirm({
+                title: '¿Restablecer Fotos?',
+                message: '¿Deseas restablecer las fotos de portada a los valores predeterminados de fábrica?',
+                icon: 'fa-rotate-left',
+                confirmText: 'RESTABLECER',
+                cancelText: 'CANCELAR',
+                confirmClass: 'bg-amber-600 hover:bg-amber-700 text-white',
+                onConfirm: () => {
+                    heroSlides = JSON.parse(JSON.stringify(DEFAULT_HERO_SLIDES));
+                    persistState();
+                    currentHeroSlideIndex = 0;
+                    renderHeroSlideshow();
+                    renderAdminHeroSlidesList();
+                    showToast('✅ Fotos de portada restablecidas');
+                }
+            });
         }
 
         // --- SISTEMA DINÁMICO DE MARCAS & CARRUSEL (PORTADA) ---
@@ -3769,29 +3843,53 @@
         }
 
         function deleteBrand(id) {
-            if (!confirm('¿Estás seguro de eliminar esta marca del carrusel de portada?')) return;
-            markAsDeleted('brands', id);
-            brands = brands.filter(b => b.id !== id);
-            persistState();
+            const b = brands.find(brand => brand.id === id);
+            const brandName = b ? b.name : 'esta marca';
 
-            // Eliminar en Supabase Cloud con API directa
-            supabaseApi.delete('brands', id).catch(err => console.warn('Supabase brand delete error:', err));
+            showFranirConfirm({
+                title: '¿Eliminar Marca?',
+                message: `¿Estás seguro de eliminar la marca "${brandName}" del carrusel de portada?\n\nEsta acción también se sincronizará con la nube.`,
+                icon: 'fa-trademark',
+                confirmText: 'SÍ, ELIMINAR',
+                cancelText: 'CANCELAR',
+                onConfirm: async () => {
+                    markAsDeleted('brands', id);
+                    brands = brands.filter(b => b.id !== id);
+                    persistState();
 
-            renderBrandsMarquee();
-            renderAdminBrandsList();
-            showToast('Marca eliminada del carrusel');
+                    // Eliminar en Supabase Cloud con API directa
+                    try {
+                        await supabaseApi.delete('brands', id);
+                    } catch (err) {
+                        console.warn('Supabase brand delete error:', err);
+                    }
+
+                    renderBrandsMarquee();
+                    renderAdminBrandsList();
+                    showToast('✅ Marca eliminada del carrusel');
+                }
+            });
         }
 
         function resetDefaultBrands() {
-            if (!confirm('¿Restablecer las marcas del carrusel a las predeterminadas de fábrica?')) return;
-            brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
-            globalConfig.brandHeight = '45';
-            if (document.getElementById('cfg-brand-height-slider')) document.getElementById('cfg-brand-height-slider').value = '45';
-            if (document.getElementById('cfg-brand-height-label')) document.getElementById('cfg-brand-height-label').innerText = '45 px';
-            persistState();
-            renderBrandsMarquee();
-            renderAdminBrandsList();
-            showToast('Marcas restablecidas a los valores predeterminados');
+            showFranirConfirm({
+                title: '¿Restablecer Marcas?',
+                message: '¿Deseas restablecer las marcas del carrusel a las predeterminadas de fábrica?',
+                icon: 'fa-rotate-left',
+                confirmText: 'RESTABLECER',
+                cancelText: 'CANCELAR',
+                confirmClass: 'bg-amber-600 hover:bg-amber-700 text-white',
+                onConfirm: () => {
+                    brands = JSON.parse(JSON.stringify(DEFAULT_BRANDS));
+                    globalConfig.brandHeight = '45';
+                    if (document.getElementById('cfg-brand-height-slider')) document.getElementById('cfg-brand-height-slider').value = '45';
+                    if (document.getElementById('cfg-brand-height-label')) document.getElementById('cfg-brand-height-label').innerText = '45 px';
+                    persistState();
+                    renderBrandsMarquee();
+                    renderAdminBrandsList();
+                    showToast('✅ Marcas restablecidas a los valores predeterminados');
+                }
+            });
         }
 
         // --- SISTEMA DE COTIZACIÓN (CARRITO) ---
@@ -5866,6 +5964,11 @@
                 }
             } else if (rawPdf) {
                 await pdfDb.set(targetId, rawPdf);
+            } else {
+                // Si el usuario eliminó la ficha técnica o la dejó en automático, purgar de IndexedDB
+                if (typeof pdfDb !== 'undefined') {
+                    await pdfDb.remove(targetId);
+                }
             }
 
             const newProduct = {
@@ -5928,36 +6031,38 @@
         }
 
         function deleteProduct(id) {
-            const confirmDiv = document.createElement('div');
-            confirmDiv.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[100]';
-            confirmDiv.innerHTML = `
-                <div class="bg-graphite border border-metallic p-6 rounded text-center max-w-sm w-full mx-4">
-                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
-                    <h3 class="text-lg font-bold mb-2">¿Eliminar producto?</h3>
-                    <p class="text-sm text-gray-400 mb-6">Esta acción no se puede deshacer.</p>
-                    <div class="flex justify-center gap-4">
-                        <button id="btn-cancel-del" class="px-4 py-2 border border-gray-600 rounded text-sm hover:bg-gray-800">Cancelar</button>
-                        <button id="btn-confirm-del" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">Sí, Eliminar</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(confirmDiv);
+            const p = products.find(prod => prod.id === id);
+            const prodName = p ? p.name : 'este producto';
+            const prodCode = p ? `(${p.code})` : '';
 
-            document.getElementById('btn-cancel-del').onclick = () => confirmDiv.remove();
-            document.getElementById('btn-confirm-del').onclick = () => {
-                markAsDeleted('products', id);
-                products = products.filter(p => p.id !== id);
-                persistState();
-                if (typeof renderHome === 'function') renderHome();
-                if (currentView === 'products') filterProducts();
-                
-                // Eliminar en la nube con API directa
-                supabaseApi.delete('products', id).catch(err => console.warn('Supabase product delete error:', err));
+            showFranirConfirm({
+                title: '¿Eliminar Producto?',
+                message: `¿Estás seguro de que deseas eliminar permanentemente:\n"${prodName}" ${prodCode}?\n\nEsta acción también lo borrará de la nube (Supabase).`,
+                icon: 'fa-trash-can',
+                confirmText: 'SÍ, ELIMINAR',
+                cancelText: 'CANCELAR',
+                onConfirm: async () => {
+                    markAsDeleted('products', id);
+                    if (typeof pdfDb !== 'undefined') {
+                        await pdfDb.remove(id);
+                    }
+                    products = products.filter(prod => prod.id !== id);
+                    persistState();
+                    if (typeof renderHome === 'function') renderHome();
+                    if (currentView === 'products') filterProducts();
 
-                showToast('Producto eliminado');
-                renderAdminProducts();
-                confirmDiv.remove();
-            };
+                    // Eliminar en Supabase Cloud con API directa
+                    try {
+                        await supabaseApi.delete('products', id);
+                    } catch (err) {
+                        console.warn('Supabase product delete error:', err);
+                    }
+
+                    renderAdminProducts();
+                    if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
+                    showToast('✅ Producto eliminado de la nube y del catálogo');
+                }
+            });
         }
 
         function renderAdminCategories() {
@@ -6110,44 +6215,35 @@
             const prodCount = products.filter(p => p.category === id).length;
             let warnMsg = `¿Está seguro de eliminar la categoría "${cat.name}"?`;
             if (prodCount > 0) {
-                warnMsg += `\n\n⚠️ Hay ${prodCount} producto(s) asignados a esta categoría.`;
+                warnMsg += `\n\n⚠️ Atención: Hay ${prodCount} producto(s) asignados a esta categoría.`;
             }
+            warnMsg += '\n\nEsta acción también se sincronizará con la nube.';
 
-            const confirmDiv = document.createElement('div');
-            confirmDiv.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-            confirmDiv.innerHTML = `
-                <div class="bg-graphite border border-gray-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
-                    <div class="w-14 h-14 bg-red-950/50 border border-red-800 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto">
-                        <i class="fas fa-trash-can"></i>
-                    </div>
-                    <h3 class="font-heading text-lg font-bold text-white">Eliminar Categoría</h3>
-                    <p class="text-xs text-gray-400 whitespace-pre-line">${warnMsg}</p>
-                    <div class="flex gap-3 pt-2">
-                        <button id="cancel-del-cat-btn" class="flex-1 py-2.5 rounded-xl border border-gray-700 text-gray-400 hover:text-white text-xs font-heading tracking-wider">CANCELAR</button>
-                        <button id="confirm-del-cat-btn" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-heading tracking-wider font-bold">ELIMINAR</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(confirmDiv);
+            showFranirConfirm({
+                title: '¿Eliminar Categoría?',
+                message: warnMsg,
+                icon: 'fa-layer-group',
+                confirmText: 'SÍ, ELIMINAR',
+                cancelText: 'CANCELAR',
+                onConfirm: async () => {
+                    markAsDeleted('categories', id);
+                    mockCategories = mockCategories.filter(c => c.id !== id);
+                    persistState();
 
-            document.getElementById('cancel-del-cat-btn').onclick = () => confirmDiv.remove();
-            document.getElementById('confirm-del-cat-btn').onclick = () => {
-                markAsDeleted('categories', id);
-                mockCategories = mockCategories.filter(c => c.id !== id);
-                persistState();
+                    // Eliminar en Supabase Cloud con API directa
+                    try {
+                        await supabaseApi.delete('categories', id);
+                    } catch (err) {
+                        console.warn('Supabase category delete error:', err);
+                    }
 
-                // Eliminar en Supabase Cloud con API directa
-                supabaseApi.delete('categories', id).catch(err => console.warn('Supabase category delete error:', err));
-
-                renderAdminCategories();
-                renderAdminDashboard();
-                if (typeof renderHome === 'function') renderHome();
-                if (document.getElementById('prod-category')) {
+                    renderAdminCategories();
+                    renderAdminDashboard();
+                    if (typeof renderHome === 'function') renderHome();
                     renderAdminProducts();
+                    showToast('✅ Categoría eliminada de la nube y del catálogo');
                 }
-                showToast('Categoría eliminada correctamente');
-                confirmDiv.remove();
-            };
+            });
         }
 
         async function handleGenericUpload(e, previewId, valId) {
