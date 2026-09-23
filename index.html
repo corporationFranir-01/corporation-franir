@@ -1809,19 +1809,29 @@
                                             <i class="fas fa-wand-magic-sparkles text-brand text-sm mt-0.5"></i>
                                             <div>
                                                 <span class="font-bold text-gray-800">Generación Automática Activa</span>
-                                                <p class="text-[11px] text-gray-500 mt-0.5">Se creará y descargará automáticamente un PDF oficial estandarizado de Corporation Franir con los datos y especificaciones de este producto.</p>
+                                                <p class="text-[11px] text-gray-500 mt-0.5">Se creará y descargará automáticamente una Ficha Técnica oficial estandarizada de Corporation Franir con los datos y especificaciones de este producto.</p>
                                             </div>
                                         </div>
-                                        <div id="mode-pdf-custom" class="hidden space-y-2">
-                                            <input type="url" id="prod-pdf-url" placeholder="https://ejemplo.com/ficha-tecnica.pdf" class="input-dark w-full p-2.5 rounded-xl text-xs" oninput="document.getElementById('prod-pdf').value = this.value; updatePdfStatusText();">
-                                            <div class="flex items-center gap-2">
-                                                <label class="flex-1 bg-white border border-gray-300 hover:border-brand rounded-xl p-2.5 text-center cursor-pointer transition text-xs text-gray-700 font-semibold flex items-center justify-center gap-1.5 shadow-sm">
-                                                    <i class="fas fa-file-arrow-up text-red-600 text-sm"></i> Subir archivo PDF
+                                        <div id="mode-pdf-custom" class="hidden space-y-2.5">
+                                            <div>
+                                                <label class="block text-[11px] text-gray-700 font-bold mb-1">
+                                                    <i class="fab fa-google-drive text-emerald-600"></i> Enlace Web o Google Drive <span class="text-gray-400 font-normal">(Recomendado para celulares y PC)</span>
+                                                </label>
+                                                <input type="url" id="prod-pdf-url" placeholder="Ej: https://drive.google.com/file/d/... o https://ejemplo.com/ficha.pdf" class="input-dark w-full p-2.5 rounded-xl text-xs" oninput="handlePdfUrlInput(this.value)" onchange="handlePdfUrlInput(this.value)" onpaste="setTimeout(()=>handlePdfUrlInput(this.value), 50)">
+                                            </div>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <label class="flex-1 min-w-[130px] bg-white border border-gray-300 hover:border-brand rounded-xl p-2.5 text-center cursor-pointer transition text-xs text-gray-700 font-semibold flex items-center justify-center gap-1.5 shadow-sm">
+                                                    <i class="fas fa-file-arrow-up text-red-600 text-sm"></i> Subir PDF local
                                                     <input type="file" id="prod-pdf-upload" accept="application/pdf" class="hidden" onchange="handleProductPdfUpload(event)">
                                                 </label>
-                                                <button type="button" onclick="clearProductPdf()" class="px-3 py-2.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-xl transition font-bold" title="Limpiar PDF"><i class="fas fa-trash"></i></button>
+                                                <button type="button" onclick="previewCurrentFormPdf()" class="px-3.5 py-2.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl transition font-bold flex items-center gap-1.5 shadow-sm" title="Probar visualización de la ficha técnica">
+                                                    <i class="fas fa-eye text-blue-600"></i> Probar Ficha
+                                                </button>
+                                                <button type="button" onclick="clearProductPdf()" class="px-3 py-2.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-xl transition font-bold" title="Limpiar PDF">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
-                                            <p id="prod-pdf-status" class="text-[10px] text-emerald-600 font-bold truncate"></p>
+                                            <div id="prod-pdf-status" class="text-[11px] font-semibold text-emerald-600 min-h-[16px]"></div>
                                         </div>
                                         <input type="hidden" id="prod-pdf">
                                     </div>
@@ -2535,10 +2545,10 @@
 
         function cleanProductForDb(p) {
             let finalDesc = getProductCleanDesc(p);
-            const customPdf = getProductPdfUrl(p);
+            const customPdf = (getProductPdfUrl(p) || '').trim();
             if (customPdf) {
-                // Si es un enlace web (http/https) o un base64 liviano (< 3.2MB), se almacena en la nube
-                if (customPdf.startsWith('http') || (customPdf.startsWith('data:application/pdf') && customPdf.length < 3.2 * 1024 * 1024)) {
+                // Si es un enlace web (http/https/gdrive/dropbox) o un base64 (< 3.8MB), se almacena en la nube
+                if (customPdf.startsWith('http') || (customPdf.startsWith('data:application/pdf') && customPdf.length < 3.8 * 1024 * 1024)) {
                     finalDesc = finalDesc ? `${finalDesc}\n\n[FICHA_PDF: ${customPdf}]` : `[FICHA_PDF: ${customPdf}]`;
                 }
             }
@@ -5070,6 +5080,105 @@
             }
         };
 
+        function formatPdfUrl(url) {
+            if (!url || typeof url !== 'string') return { previewUrl: '', downloadUrl: '', viewUrl: '', rawUrl: '', type: 'none' };
+            const trimmed = url.trim();
+            if (!trimmed) return { previewUrl: '', downloadUrl: '', viewUrl: '', rawUrl: '', type: 'none' };
+
+            // 1. Archivo local Base64
+            if (trimmed.startsWith('data:application/pdf')) {
+                const blob = dataUriToBlob(trimmed);
+                const blobUrl = blob ? URL.createObjectURL(blob) : trimmed;
+                return {
+                    previewUrl: blobUrl,
+                    downloadUrl: blobUrl,
+                    viewUrl: blobUrl,
+                    rawUrl: trimmed,
+                    type: 'data'
+                };
+            }
+
+            // 2. Blob URL
+            if (trimmed.startsWith('blob:')) {
+                return {
+                    previewUrl: trimmed,
+                    downloadUrl: trimmed,
+                    viewUrl: trimmed,
+                    rawUrl: trimmed,
+                    type: 'data'
+                };
+            }
+
+            // 3. Enlaces de Google Drive / Google Docs
+            const gDriveMatch = trimmed.match(/(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=download&)?id=|document\/d\/)([a-zA-Z0-9_-]+)/i);
+            if (gDriveMatch && gDriveMatch[1]) {
+                const fileId = gDriveMatch[1];
+                return {
+                    previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+                    downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+                    viewUrl: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`,
+                    rawUrl: trimmed,
+                    type: 'gdrive',
+                    fileId: fileId
+                };
+            }
+
+            // 4. Enlaces de Dropbox (convertir a streaming directo con raw=1)
+            if (trimmed.includes('dropbox.com')) {
+                let clean = trimmed.replace(/\?dl=[01]/g, '').replace(/&dl=[01]/g, '');
+                const sep = clean.includes('?') ? '&' : '?';
+                const rawUrl = `${clean}${sep}raw=1`;
+                return {
+                    previewUrl: rawUrl,
+                    downloadUrl: rawUrl,
+                    viewUrl: trimmed,
+                    rawUrl: trimmed,
+                    type: 'dropbox'
+                };
+            }
+
+            // 5. OneDrive
+            if (trimmed.includes('1drv.ms') || trimmed.includes('onedrive.live.com')) {
+                return {
+                    previewUrl: trimmed,
+                    downloadUrl: trimmed,
+                    viewUrl: trimmed,
+                    rawUrl: trimmed,
+                    type: 'onedrive'
+                };
+            }
+
+            // 6. Enlace Web directo (http/https)
+            if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const previewUrl = isMobile 
+                    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(trimmed)}`
+                    : `${trimmed}#toolbar=1&navpanes=0`;
+                return {
+                    previewUrl: previewUrl,
+                    downloadUrl: trimmed,
+                    viewUrl: trimmed,
+                    rawUrl: trimmed,
+                    type: 'web'
+                };
+            }
+
+            return {
+                previewUrl: trimmed,
+                downloadUrl: trimmed,
+                viewUrl: trimmed,
+                rawUrl: trimmed,
+                type: 'other'
+            };
+        }
+
+        function handlePdfUrlInput(val) {
+            const trimmed = (val || '').trim();
+            const pdfInput = document.getElementById('prod-pdf');
+            if (pdfInput) pdfInput.value = trimmed;
+            updatePdfStatusText();
+        }
+
         function setPdfMode(mode) {
             const btnAuto = document.getElementById('tab-pdf-auto');
             const btnCustom = document.getElementById('tab-pdf-custom');
@@ -5086,6 +5195,8 @@
                 if (pdfInput) pdfInput.value = '';
                 const pdfUrl = document.getElementById('prod-pdf-url');
                 if (pdfUrl) pdfUrl.value = '';
+                const pdfUpload = document.getElementById('prod-pdf-upload');
+                if (pdfUpload) pdfUpload.value = '';
             } else {
                 btnCustom.className = "text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors";
                 btnAuto.className = "text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors";
@@ -5097,18 +5208,23 @@
 
         function updatePdfStatusText() {
             const statusEl = document.getElementById('prod-pdf-status');
-            const pdfVal = document.getElementById('prod-pdf')?.value || '';
+            const pdfVal = (document.getElementById('prod-pdf')?.value || document.getElementById('prod-pdf-url')?.value || '').trim();
             if (!statusEl) return;
-            if (pdfVal) {
-                if (pdfVal.startsWith('data:application/pdf')) {
-                    statusEl.innerText = '✔ Archivo PDF cargado y listo para guardar';
-                } else if (pdfVal.startsWith('http')) {
-                    statusEl.innerText = '✔ Enlace PDF asignado: ' + pdfVal;
-                } else {
-                    statusEl.innerText = '✔ Ficha PDF personalizada activa';
-                }
+            if (!pdfVal) {
+                statusEl.innerHTML = '';
+                return;
+            }
+            const pdfInfo = formatPdfUrl(pdfVal);
+            if (pdfInfo.type === 'gdrive') {
+                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace de Google Drive detectado (optimizado para celular y PC)</span>';
+            } else if (pdfInfo.type === 'dropbox') {
+                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace de Dropbox detectado (optimizado para descarga)</span>';
+            } else if (pdfInfo.type === 'data') {
+                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Archivo PDF subido listo para guardar en la nube</span>';
+            } else if (pdfInfo.type === 'web') {
+                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace web directo asignado correctamente</span>';
             } else {
-                statusEl.innerText = '';
+                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Ficha técnica PDF activa</span>';
             }
         }
 
@@ -5119,17 +5235,18 @@
                 showToast('Por favor selecciona un archivo PDF válido', 'error');
                 return;
             }
-            if (file.size > 2.5 * 1024 * 1024) {
+            if (file.size > 3.8 * 1024 * 1024) {
                 const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-                showToast(`El PDF pesa ${sizeMb} MB. Para que sincronice con la nube en celulares y laptops al instante, usa un PDF menor a 2.5MB o pega el enlace web (Google Drive / Dropbox).`, 'warning');
-                setPdfMode('url');
+                showToast(`El PDF pesa ${sizeMb} MB. Para sincronización inmediata en celulares y laptops, te recomendamos usar un PDF menor a 3.5MB o pegar el enlace web de Google Drive.`, 'warning');
                 return;
             }
             const reader = new FileReader();
             reader.onload = function(e) {
                 const base64 = e.target.result;
-                document.getElementById('prod-pdf').value = base64;
-                document.getElementById('prod-pdf-url').value = '';
+                const pdfInput = document.getElementById('prod-pdf');
+                if (pdfInput) pdfInput.value = base64;
+                const pdfUrl = document.getElementById('prod-pdf-url');
+                if (pdfUrl) pdfUrl.value = '';
                 updatePdfStatusText();
                 showToast('Ficha Técnica en PDF cargada correctamente ✅');
             };
@@ -5139,8 +5256,10 @@
         function clearProductPdf() {
             const prodId = document.getElementById('prod-id')?.value;
             if (prodId) pdfDb.remove(prodId);
-            document.getElementById('prod-pdf').value = '';
-            document.getElementById('prod-pdf-url').value = '';
+            const pdfInput = document.getElementById('prod-pdf');
+            if (pdfInput) pdfInput.value = '';
+            const pdfUrl = document.getElementById('prod-pdf-url');
+            if (pdfUrl) pdfUrl.value = '';
             const fileInput = document.getElementById('prod-pdf-upload');
             if (fileInput) fileInput.value = '';
             updatePdfStatusText();
@@ -5164,6 +5283,28 @@
             }
         }
 
+        function previewCurrentFormPdf() {
+            const pdfVal = (document.getElementById('prod-pdf')?.value || document.getElementById('prod-pdf-url')?.value || '').trim();
+            if (!pdfVal) {
+                showToast('Ingresa un enlace de PDF o sube un archivo para poder probarlo', 'warning');
+                return;
+            }
+            const tempProduct = {
+                id: document.getElementById('prod-id')?.value || 'preview_prod',
+                code: document.getElementById('prod-code')?.value || 'VISTA-PREVIA',
+                name: document.getElementById('prod-name')?.value || 'Ficha Técnica en Edición',
+                category: document.getElementById('prod-cat')?.value || '',
+                brand: document.getElementById('prod-brand')?.value || 'CORPORATION FRANIR',
+                capacity: document.getElementById('prod-cap')?.value || 'Estándar Industrial',
+                material: document.getElementById('prod-mat')?.value || 'Acero Forjado',
+                norm: document.getElementById('prod-norm')?.value || 'ASME / OSHA',
+                img: document.getElementById('prod-img')?.value || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80',
+                desc: document.getElementById('prod-desc')?.value || '',
+                pdf: pdfVal
+            };
+            openDatasheetModalWithProduct(tempProduct, pdfVal);
+        }
+
         async function downloadProductDatasheetPDF(productId, directDownload = false) {
             await openDatasheetModal(productId);
             if (directDownload) {
@@ -5176,25 +5317,34 @@
         async function openDatasheetModal(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
+            await openDatasheetModalWithProduct(product);
+        }
 
-            currentDatasheetProductId = productId;
+        async function openDatasheetModalWithProduct(product, explicitPdf = null) {
+            if (!product) return;
+            currentDatasheetProductId = product.id;
             const container = document.getElementById('datasheet-modal-content');
             const titleEl = document.getElementById('datasheet-modal-title');
             if (titleEl) titleEl.innerText = `FICHA TÉCNICA: ${product.code} - ${product.name}`;
 
-            let customPdf = getProductPdfUrl(product);
+            let customPdf = explicitPdf;
             if (!customPdf) {
+                customPdf = getProductPdfUrl(product);
+            }
+            if (!customPdf && product.id) {
                 customPdf = await pdfDb.get(product.id);
             }
 
             if (customPdf) {
-                let displayUrl = customPdf;
-                if (customPdf.startsWith('data:application/pdf')) {
-                    const blob = dataUriToBlob(customPdf);
-                    if (blob) {
-                        displayUrl = URL.createObjectURL(blob);
-                    }
-                }
+                const pdfInfo = formatPdfUrl(customPdf);
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const cleanCode = (product.code || 'FRANIR').replace(/\s+/g, '_');
+                const filename = `Ficha_Tecnica_${cleanCode}.pdf`;
+
+                let badgeText = 'DOCUMENTO OFICIAL ADJUNTO';
+                if (pdfInfo.type === 'gdrive') badgeText = 'GOOGLE DRIVE PDF VERIFICADO';
+                else if (pdfInfo.type === 'dropbox') badgeText = 'DROPBOX PDF VERIFICADO';
+                else if (pdfInfo.type === 'data') badgeText = 'ARCHIVO PDF DIGITAL';
 
                 container.className = "bg-white text-gray-900 shadow-2xl rounded-2xl p-4 sm:p-6 w-full max-w-4xl font-sans text-xs";
                 container.innerHTML = `
@@ -5205,30 +5355,44 @@
                             </div>
                             <div>
                                 <span class="text-[10px] uppercase font-bold text-blue-600 tracking-wider flex items-center gap-1">
-                                    <i class="fas fa-shield-halved text-xs"></i> Documento Oficial Adjunto
+                                    <i class="fas fa-shield-halved text-xs"></i> ${badgeText}
                                 </span>
                                 <h4 class="font-heading font-extrabold text-gray-900 text-sm sm:text-base">${product.name}</h4>
                                 <p class="text-[11px] text-gray-500 font-mono">Código: <b class="text-orange-600">${product.code}</b> | Marca: <b>${product.brand || 'FRANIR'}</b></p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <a href="${displayUrl}" download="Ficha_Tecnica_${(product.code || 'FRANIR').replace(/\s+/g, '_')}.pdf" class="bg-red-600 hover:bg-red-700 text-white font-heading font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition active:scale-95">
+                            <button onclick="downloadCurrentDatasheetPDF()" class="bg-red-600 hover:bg-red-700 text-white font-heading font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition active:scale-95 cursor-pointer">
                                 <i class="fas fa-download"></i> Descargar PDF
-                            </a>
-                            <a href="${displayUrl}" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white font-heading font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition active:scale-95">
-                                <i class="fas fa-arrow-up-right-from-square"></i> Abrir Completa
+                            </button>
+                            <a href="${pdfInfo.viewUrl || pdfInfo.previewUrl}" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white font-heading font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition active:scale-95">
+                                <i class="fas fa-arrow-up-right-from-square"></i> <span class="hidden sm:inline">Pantalla</span> Completa
                             </a>
                         </div>
                     </div>
 
+                    ${isMobile && pdfInfo.type === 'data' ? `
+                    <!-- Tarjeta Optimizada para Celulares (Descarga Directa) -->
+                    <div class="bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-2xl p-6 text-center shadow-sm mb-4">
+                        <div class="w-14 h-14 bg-red-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 shadow-md">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <h4 class="font-heading font-bold text-gray-900 text-sm sm:text-base mb-1">Ficha Técnica Oficial para Móvil</h4>
+                        <p class="text-xs text-gray-600 mb-4 max-w-sm mx-auto">Toca el botón a continuación para abrir y guardar la ficha técnica completa en tu celular:</p>
+                        <a href="${pdfInfo.downloadUrl}" download="${filename}" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-xl font-heading font-bold text-xs inline-flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
+                            <i class="fas fa-download text-sm"></i> DESCARGAR Y ABRIR EN CELULAR
+                        </a>
+                    </div>
+                    ` : ''}
+
                     <!-- Visor de PDF Integrado para Celulares y Computadoras -->
                     <div class="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 shadow-inner" style="height: 65vh; min-height: 420px;">
-                        <iframe src="${displayUrl}#toolbar=1&navpanes=0" class="w-full h-full border-0" title="Visor de Ficha Técnica">
+                        <iframe src="${pdfInfo.previewUrl}" class="w-full h-full border-0" title="Visor de Ficha Técnica" allow="autoplay">
                             <div class="p-8 text-center bg-white h-full flex flex-col items-center justify-center">
                                 <i class="fas fa-file-pdf text-5xl text-red-500 mb-3"></i>
                                 <h4 class="text-base font-bold text-gray-800 mb-2">Visualizador de Ficha Técnica</h4>
                                 <p class="text-xs text-gray-500 mb-4 max-w-md">Para visualizar este documento en tu dispositivo móvil, toca el siguiente botón:</p>
-                                <a href="${displayUrl}" target="_blank" class="btn-primary px-6 py-3 rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-lg">
+                                <a href="${pdfInfo.viewUrl || pdfInfo.previewUrl}" target="_blank" rel="noopener noreferrer" class="btn-primary px-6 py-3 rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-lg">
                                     <i class="fas fa-external-link-alt"></i> Toca aquí para ver Ficha Técnica PDF
                                 </a>
                             </div>
@@ -5243,131 +5407,135 @@
                     </div>
                 `;
             } else {
-                container.className = "bg-white text-gray-900 shadow-2xl rounded p-6 sm:p-10 w-full max-w-3xl font-sans text-xs";
-                const categoryName = mockCategories.find(c => c.id === product.category)?.name || 'General';
-                const cleanDesc = getProductCleanDesc(product) || 'Producto de alta resistencia diseñado bajo rigurosos estándares de seguridad industrial para operaciones de carga y maniobra pesada.';
-                const todayStr = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
-                const logoSrc = globalConfig.logo || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&q=80';
-
-                container.innerHTML = `
-                    <!-- Cabecera Oficial Corporation Franir -->
-                    <div style="border-bottom: 2px solid #0072ce; padding-bottom: 12px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <img src="${logoSrc}" alt="Corporation Franir" style="height: 52px; max-width: 170px; object-fit: contain;">
-                                <div>
-                                    <h2 style="font-size: 15px; font-weight: 800; color: #111; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">${globalConfig.companyName || 'CORPORATION FRANIR E.I.R.L.'}</h2>
-                                    <p style="font-size: 10px; color: #555; margin: 2px 0 0 0; font-weight: 600;">R.U.C.: ${globalConfig.ruc || '20615462463'} | Soluciones Industriales e Izaje</p>
-                                    <p style="font-size: 9px; color: #777; margin: 1px 0 0 0;">Dir: ${globalConfig.address || 'Lima, Perú'} | Tel: ${globalConfig.phoneDisplay || '+51 906 851 575'} | Email: ${globalConfig.email || 'corporacionfranir@gmail.com'}</p>
-                                </div>
-                            </div>
-                            <div style="text-align: right; border-left: 2px solid #ff5500; padding-left: 10px;">
-                                <span style="display: inline-block; background: #0072ce; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">DOCUMENTO TÉCNICO OFICIAL</span>
-                                <p style="font-size: 9px; color: #444; margin: 4px 0 0 0; font-family: monospace;"><b>EMISIÓN:</b> ${todayStr}</p>
-                                <p style="font-size: 9px; color: #444; margin: 1px 0 0 0; font-family: monospace;"><b>CÓDIGO:</b> <span style="color: #ff5500; font-weight: bold;">${product.code}</span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Título del Producto & Insignias -->
-                    <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                            <div>
-                                <span style="font-size: 9px; font-weight: bold; color: #0072ce; text-transform: uppercase; letter-spacing: 1px;">CATEGORÍA: ${categoryName}</span>
-                                <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 4px 0; line-height: 1.2;">${product.name}</h1>
-                            </div>
-                            <div style="text-align: right; shrink-0;">
-                                <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; text-transform: uppercase; font-family: monospace;">
-                                    ${product.brand || 'FRANIR'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contenido Principal: Imagen + Ficha de Especificaciones (Adaptable Celular / Desktop) -->
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_1.35fr] gap-4 mb-4 items-start">
-                        <!-- Imagen del Producto -->
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
-                            <img src="${product.img}" alt="${product.name}" style="max-height: 190px; max-width: 100%; object-fit: contain; margin-bottom: 8px;">
-                            <span style="font-size: 8px; color: #64748b; font-style: italic;">Foto referencial del producto suministrado</span>
-                        </div>
-
-                        <!-- Tabla de Especificaciones Técnicas -->
-                        <div>
-                            <div style="background: #0072ce; color: #ffffff; padding: 6px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px 6px 0 0;">
-                                ESPECIFICACIONES DEL PRODUCTO
-                            </div>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0; border-top: none;">
-                                <tbody>
-                                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569; width: 42%;">CÓDIGO DE PARTE:</td>
-                                        <td style="padding: 7px 10px; font-weight: 800; color: #0f172a; font-family: monospace;">${product.code}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">CAPACIDAD / CARGA:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #0072ce;">${product.capacity || 'Estándar Industrial'}</td>
-                                    </tr>
-                                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MATERIAL / ACABADO:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.material || 'Acero Forjado de Alta Resistencia'}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">NORMA / CERTIFICACIÓN:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.norm || 'Cumple Normativas ASME / OSHA'}</td>
-                                    </tr>
-                                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MARCA / FABRICANTE:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.brand || 'FRANIR'}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">FACTOR DE SEGURIDAD:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">4:1 / 5:1 (Conforme a norma aplicable)</td>
-                                    </tr>
-                                    <tr style="background: #f8fafc;">
-                                        <td style="padding: 7px 10px; font-weight: bold; color: #475569;">DISPONIBILIDAD:</td>
-                                        <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">Stock Disponible / Entrega Inmediata</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Descripción y Aplicaciones -->
-                    <div style="margin-bottom: 16px;">
-                        <div style="background: #f1f5f9; padding: 6px 10px; font-size: 10px; font-weight: 800; color: #334155; text-transform: uppercase; border-left: 3px solid #ff5500; margin-bottom: 6px;">
-                            DESCRIPCIÓN TÉCNICA Y RECOMENDACIONES DE USO
-                        </div>
-                        <div style="font-size: 10px; color: #334155; line-height: 1.5; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
-                            ${cleanDesc}
-                        </div>
-                    </div>
-
-                    <!-- Bloques de Garantía & Cumplimiento Normativo (Adaptable Celular) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px;">
-                            <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #166534; text-transform: uppercase;">✔ CERTIFICACIÓN Y CONTROL DE CALIDAD</h4>
-                            <p style="margin: 0; font-size: 8.5px; color: #14532d; line-height: 1.35;">Producto inspeccionado y ensayado bajo estándares internacionales. Se emite Certificado de Calidad del Fabricante contra entrega a solicitud del cliente.</p>
-                        </div>
-                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px;">
-                            <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #1e40af; text-transform: uppercase;">✔ GARANTÍA Y SOPORTE FRANIR</h4>
-                            <p style="margin: 0; font-size: 8.5px; color: #1e3a8a; line-height: 1.35;">Garantía directa de 12 meses contra defectos de fabricación. Soporte técnico especializado en izaje y sujeción de carga industrial.</p>
-                        </div>
-                    </div>
-
-                    <!-- Pie de Página Oficial -->
-                    <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #64748b;">
-                        <div>
-                            <b style="color: #0f172a;">CORPORATION FRANIR E.I.R.L.</b> — Soluciones Integrales para Minería, Pesca y Construcción.
-                            <div style="color: #94a3b8; font-size: 7.5px; margin-top: 1px;">Documento generado automáticamente por el sistema web oficial. Toda reproducción total o parcial debe ser autorizada.</div>
-                        </div>
-                        <div style="text-align: right; shrink-0;">
-                            <span style="border: 1px solid #0072ce; color: #0072ce; padding: 2px 6px; border-radius: 3px; font-weight: bold; text-transform: uppercase;">VALIDADO</span>
-                        </div>
-                    </div>
-                `;
+                renderAutomaticFranirDatasheet(product, container);
             }
 
             document.getElementById('datasheet-modal').classList.remove('hidden');
+        }
+
+        function renderAutomaticFranirDatasheet(product, container) {
+            container.className = "bg-white text-gray-900 shadow-2xl rounded p-6 sm:p-10 w-full max-w-3xl font-sans text-xs";
+            const categoryName = mockCategories.find(c => c.id === product.category)?.name || 'General';
+            const cleanDesc = getProductCleanDesc(product) || 'Producto de alta resistencia diseñado bajo rigurosos estándares de seguridad industrial para operaciones de carga y maniobra pesada.';
+            const todayStr = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+            const logoSrc = globalConfig.logo || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&q=80';
+
+            container.innerHTML = `
+                <!-- Cabecera Oficial Corporation Franir -->
+                <div style="border-bottom: 2px solid #0072ce; padding-bottom: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${logoSrc}" alt="Corporation Franir" style="height: 52px; max-width: 170px; object-fit: contain;">
+                            <div>
+                                <h2 style="font-size: 15px; font-weight: 800; color: #111; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">${globalConfig.companyName || 'CORPORATION FRANIR E.I.R.L.'}</h2>
+                                <p style="font-size: 10px; color: #555; margin: 2px 0 0 0; font-weight: 600;">R.U.C.: ${globalConfig.ruc || '20615462463'} | Soluciones Industriales e Izaje</p>
+                                <p style="font-size: 9px; color: #777; margin: 1px 0 0 0;">Dir: ${globalConfig.address || 'Lima, Perú'} | Tel: ${globalConfig.phoneDisplay || '+51 906 851 575'} | Email: ${globalConfig.email || 'corporacionfranir@gmail.com'}</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right; border-left: 2px solid #ff5500; padding-left: 10px;">
+                            <span style="display: inline-block; background: #0072ce; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">DOCUMENTO TÉCNICO OFICIAL</span>
+                            <p style="font-size: 9px; color: #444; margin: 4px 0 0 0; font-family: monospace;"><b>EMISIÓN:</b> ${todayStr}</p>
+                            <p style="font-size: 9px; color: #444; margin: 1px 0 0 0; font-family: monospace;"><b>CÓDIGO:</b> <span style="color: #ff5500; font-weight: bold;">${product.code}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Título del Producto & Insignias -->
+                <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <span style="font-size: 9px; font-weight: bold; color: #0072ce; text-transform: uppercase; letter-spacing: 1px;">CATEGORÍA: ${categoryName}</span>
+                            <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 4px 0; line-height: 1.2;">${product.name}</h1>
+                        </div>
+                        <div style="text-align: right; shrink-0;">
+                            <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; text-transform: uppercase; font-family: monospace;">
+                                ${product.brand || 'FRANIR'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenido Principal: Imagen + Ficha de Especificaciones -->
+                <div class="grid grid-cols-1 md:grid-cols-[1fr_1.35fr] gap-4 mb-4 items-start">
+                    <!-- Imagen del Producto -->
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+                        <img src="${product.img}" alt="${product.name}" style="max-height: 190px; max-width: 100%; object-fit: contain; margin-bottom: 8px;">
+                        <span style="font-size: 8px; color: #64748b; font-style: italic;">Foto referencial del producto suministrado</span>
+                    </div>
+
+                    <!-- Tabla de Especificaciones Técnicas -->
+                    <div>
+                        <div style="background: #0072ce; color: #ffffff; padding: 6px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px 6px 0 0;">
+                            ESPECIFICACIONES DEL PRODUCTO
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0; border-top: none;">
+                            <tbody>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569; width: 42%;">CÓDIGO DE PARTE:</td>
+                                    <td style="padding: 7px 10px; font-weight: 800; color: #0f172a; font-family: monospace;">${product.code}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">CAPACIDAD / CARGA:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0072ce;">${product.capacity || 'Estándar Industrial'}</td>
+                                </tr>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MATERIAL / ACABADO:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.material || 'Acero Forjado de Alta Resistencia'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">NORMA / CERTIFICACIÓN:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.norm || 'Cumple Normativas ASME / OSHA'}</td>
+                                </tr>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">MARCA / FABRICANTE:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #0f172a;">${product.brand || 'FRANIR'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">FACTOR DE SEGURIDAD:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">4:1 / 5:1 (Conforme a norma aplicable)</td>
+                                </tr>
+                                <tr style="background: #f8fafc;">
+                                    <td style="padding: 7px 10px; font-weight: bold; color: #475569;">DISPONIBILIDAD:</td>
+                                    <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">Stock Disponible / Entrega Inmediata</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Descripción y Aplicaciones -->
+                <div style="margin-bottom: 16px;">
+                    <div style="background: #f1f5f9; padding: 6px 10px; font-size: 10px; font-weight: 800; color: #334155; text-transform: uppercase; border-left: 3px solid #ff5500; margin-bottom: 6px;">
+                        DESCRIPCIÓN TÉCNICA Y RECOMENDACIONES DE USO
+                    </div>
+                    <div style="font-size: 10px; color: #334155; line-height: 1.5; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
+                        ${cleanDesc}
+                    </div>
+                </div>
+
+                <!-- Bloques de Garantía & Cumplimiento Normativo -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #166534; text-transform: uppercase;">✔ CERTIFICACIÓN Y CONTROL DE CALIDAD</h4>
+                        <p style="margin: 0; font-size: 8.5px; color: #14532d; line-height: 1.35;">Producto inspeccionado y ensayado bajo estándares internacionales. Se emite Certificado de Calidad del Fabricante contra entrega a solicitud del cliente.</p>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 9px; font-weight: 800; color: #1e40af; text-transform: uppercase;">✔ GARANTÍA Y SOPORTE FRANIR</h4>
+                        <p style="margin: 0; font-size: 8.5px; color: #1e3a8a; line-height: 1.35;">Garantía directa de 12 meses contra defectos de fabricación. Soporte técnico especializado en izaje y sujeción de carga industrial.</p>
+                    </div>
+                </div>
+
+                <!-- Pie de Página Oficial -->
+                <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #64748b;">
+                    <div>
+                        <b style="color: #0f172a;">CORPORATION FRANIR E.I.R.L.</b> — Soluciones Integrales para Minería, Pesca y Construcción.
+                        <div style="color: #94a3b8; font-size: 7.5px; margin-top: 1px;">Documento generado automáticamente por el sistema web oficial. Toda reproducción total o parcial debe ser autorizada.</div>
+                    </div>
+                    <div style="text-align: right; shrink-0;">
+                        <span style="border: 1px solid #0072ce; color: #0072ce; padding: 2px 6px; border-radius: 3px; font-weight: bold; text-transform: uppercase;">VALIDADO</span>
+                    </div>
+                </div>
+            `;
         }
 
         function closeDatasheetModal() {
@@ -5377,11 +5545,24 @@
         }
 
         async function downloadCurrentDatasheetPDF() {
-            const product = products.find(p => p.id === currentDatasheetProductId);
-            if (!product) return;
+            let product = products.find(p => p.id === currentDatasheetProductId);
+            if (!product) {
+                // Si es previsualización del formulario en edición
+                const pdfVal = (document.getElementById('prod-pdf')?.value || document.getElementById('prod-pdf-url')?.value || '').trim();
+                if (pdfVal) {
+                    product = {
+                        id: 'temp_preview',
+                        code: document.getElementById('prod-code')?.value || 'FRANIR',
+                        name: document.getElementById('prod-name')?.value || 'Producto',
+                        pdf: pdfVal
+                    };
+                } else {
+                    return;
+                }
+            }
 
-            let customPdf = getProductPdfUrl(product);
-            if (!customPdf) {
+            let customPdf = product.pdf || getProductPdfUrl(product);
+            if (!customPdf && product.id) {
                 customPdf = await pdfDb.get(product.id);
             }
 
@@ -5389,15 +5570,20 @@
             const filename = `Ficha_Tecnica_Franir_${prodCode}.pdf`;
 
             if (customPdf) {
-                if (customPdf.startsWith('http')) {
+                const pdfInfo = formatPdfUrl(customPdf);
+                if (pdfInfo.type === 'gdrive') {
+                    window.open(pdfInfo.downloadUrl, '_blank');
+                    showToast('Descargando Ficha Técnica desde Google Drive... ✅');
+                    return;
+                } else if (pdfInfo.type === 'dropbox' || pdfInfo.type === 'web') {
                     const a = document.createElement('a');
-                    a.href = customPdf;
+                    a.href = pdfInfo.downloadUrl;
                     a.target = '_blank';
                     a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    showToast('Descargando Ficha Técnica PDF...');
+                    showToast('Descargando Ficha Técnica PDF... ✅');
                     return;
                 } else if (customPdf.startsWith('data:application/pdf') || customPdf.startsWith('blob:')) {
                     const blob = customPdf.startsWith('blob:') ? null : dataUriToBlob(customPdf);
@@ -5647,17 +5833,14 @@
             }
 
             const prodPdf = document.getElementById('prod-pdf');
-            if (prodPdf) prodPdf.value = customPdf;
+            if (prodPdf) prodPdf.value = customPdf || '';
+            const prodPdfUrl = document.getElementById('prod-pdf-url');
+            if (prodPdfUrl) prodPdfUrl.value = (customPdf && customPdf.startsWith('http')) ? customPdf : '';
+
             if (customPdf) {
                 setPdfMode('custom');
-                const prodPdfUrl = document.getElementById('prod-pdf-url');
-                if (prodPdfUrl) prodPdfUrl.value = customPdf.startsWith('http') ? customPdf : '';
             } else {
                 setPdfMode('auto');
-                const prodPdfUrl = document.getElementById('prod-pdf-url');
-                if (prodPdfUrl) prodPdfUrl.value = '';
-                const prodPdfUpload = document.getElementById('prod-pdf-upload');
-                if (prodPdfUpload) prodPdfUpload.value = '';
             }
             updatePdfStatusText();
 
@@ -5673,27 +5856,29 @@
             
             const id = document.getElementById('prod-id').value;
             const targetId = id || generateId();
-            const pdfVal = (document.getElementById('prod-pdf')?.value || '').trim();
+            const rawPdf = (document.getElementById('prod-pdf')?.value || document.getElementById('prod-pdf-url')?.value || '').trim();
             
-            let cloudPdf = pdfVal;
-            if (pdfVal.startsWith('data:application/pdf')) {
-                await pdfDb.set(targetId, pdfVal);
-                if (pdfVal.length > 2.5 * 1024 * 1024) {
-                    showToast('PDF pesado guardado en este equipo. Para sincronizarlo con tu celular te recomendamos un archivo menor a 2MB o enlace web.', 'warning');
+            let cloudPdf = rawPdf;
+            if (rawPdf.startsWith('data:application/pdf')) {
+                await pdfDb.set(targetId, rawPdf);
+                if (rawPdf.length > 3.8 * 1024 * 1024) {
+                    showToast('PDF pesado guardado en este equipo. Para sincronizarlo con tu celular te recomendamos enlace web o Google Drive.', 'warning');
                 }
+            } else if (rawPdf) {
+                await pdfDb.set(targetId, rawPdf);
             }
 
             const newProduct = {
                 id: targetId,
-                code: document.getElementById('prod-code').value,
-                name: document.getElementById('prod-name').value,
+                code: document.getElementById('prod-code').value.trim(),
+                name: document.getElementById('prod-name').value.trim(),
                 category: document.getElementById('prod-cat').value,
-                brand: document.getElementById('prod-brand').value,
-                capacity: document.getElementById('prod-cap').value,
-                material: document.getElementById('prod-mat').value,
-                norm: document.getElementById('prod-norm').value,
-                img: document.getElementById('prod-img').value || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80',
-                desc: getProductCleanDesc(document.getElementById('prod-desc').value),
+                brand: document.getElementById('prod-brand').value.trim(),
+                capacity: document.getElementById('prod-cap').value.trim(),
+                material: document.getElementById('prod-mat').value.trim(),
+                norm: document.getElementById('prod-norm').value.trim(),
+                img: document.getElementById('prod-img').value.trim() || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80',
+                desc: getProductCleanDesc(document.getElementById('prod-desc').value.trim()),
                 pdf: cloudPdf,
                 visible: document.getElementById('prod-visible').checked,
                 featured: document.getElementById('prod-featured').checked,
@@ -5722,14 +5907,14 @@
                     console.warn('Supabase product upsert error:', res.error);
                     if (res.isPayloadTooLarge) {
                         state.done('local', 'Guardado en equipo (PDF pesado)');
-                        showToast('Guardado en este equipo. El archivo PDF es muy pesado para la nube; usa un enlace web o un PDF menor a 2.5MB.', 'warning');
+                        showToast('Guardado en este equipo. El archivo PDF es muy pesado para la nube; usa un enlace de Google Drive o un PDF menor a 3.5MB.', 'warning');
                     } else {
                         state.done('local', 'Guardado en equipo ✅');
                         showToast('Guardado en este equipo. Se sincronizará con la nube automáticamente.', 'info');
                     }
                 } else {
                     state.done(true, '¡Producto Guardado! ✅');
-                    showToast(`✅ Producto "${newProduct.name}" guardado en la nube`, 'success');
+                    showToast(`✅ Producto "${newProduct.name}" y su Ficha Técnica guardados en la nube`, 'success');
                 }
             } catch (err) {
                 console.error(err);
