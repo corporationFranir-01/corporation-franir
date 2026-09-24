@@ -1797,45 +1797,61 @@
                                     </div>
 
                                     <!-- Ficha Técnica en PDF -->
-                                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-2.5">
+                                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                                         <div class="flex items-center justify-between">
                                             <label class="block text-xs text-gray-800 font-bold font-heading tracking-wider flex items-center gap-1.5">
-                                                <i class="fas fa-file-pdf text-red-600"></i> FICHA TÉCNICA (PDF)
+                                                <i class="fas fa-file-pdf text-red-600 text-sm"></i> FICHA TÉCNICA (PDF) DEL PRODUCTO
                                             </label>
-                                            <span class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">Auto / Manual</span>
+                                            <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">Nube / Sincronizado</span>
                                         </div>
-                                        <div class="flex items-center gap-3 border-b border-gray-200 pb-2">
-                                            <button type="button" id="tab-pdf-auto" onclick="setPdfMode('auto')" class="text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors">Generación Automática</button>
-                                            <button type="button" id="tab-pdf-custom" onclick="setPdfMode('custom')" class="text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors">Enlace o Archivo PDF</button>
-                                        </div>
-                                        <div id="mode-pdf-auto" class="text-xs text-gray-600 bg-white p-3 rounded-xl border border-gray-200 flex items-start gap-2">
-                                            <i class="fas fa-wand-magic-sparkles text-brand text-sm mt-0.5"></i>
-                                            <div>
-                                                <span class="font-bold text-gray-800">Generación Automática Activa</span>
-                                                <p class="text-[11px] text-gray-500 mt-0.5">Se creará y descargará automáticamente una Ficha Técnica oficial estandarizada de Corporation Franir con los datos y especificaciones de este producto.</p>
-                                            </div>
-                                        </div>
-                                        <div id="mode-pdf-custom" class="hidden space-y-2.5">
-                                            <div>
-                                                <label class="block text-[11px] text-gray-700 font-bold mb-1">
-                                                    <i class="fab fa-google-drive text-emerald-600"></i> Enlace Web o Google Drive <span class="text-gray-400 font-normal">(Recomendado para celulares y PC)</span>
+
+                                        <!-- Campo Principal: Enlace Google Drive / Web (Recomendado 100% Celulares y Laptops) -->
+                                        <div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <label class="block text-[11px] text-gray-700 font-bold flex items-center gap-1">
+                                                    <i class="fab fa-google-drive text-emerald-600"></i> Enlace de Google Drive o Web
+                                                    <span class="text-emerald-600 font-semibold text-[10px]">(Recomendado para celulares y PC)</span>
                                                 </label>
-                                                <input type="url" id="prod-pdf-url" placeholder="Ej: https://drive.google.com/file/d/... o https://ejemplo.com/ficha.pdf" class="input-dark w-full p-2.5 rounded-xl text-xs" oninput="handlePdfUrlInput(this.value)" onchange="handlePdfUrlInput(this.value)" onpaste="setTimeout(()=>handlePdfUrlInput(this.value), 50)">
-                                            </div>
-                                            <div class="flex items-center gap-2 flex-wrap">
-                                                <label class="flex-1 min-w-[130px] bg-white border border-gray-300 hover:border-brand rounded-xl p-2.5 text-center cursor-pointer transition text-xs text-gray-700 font-semibold flex items-center justify-center gap-1.5 shadow-sm">
-                                                    <i class="fas fa-file-arrow-up text-red-600 text-sm"></i> Subir PDF local
-                                                    <input type="file" id="prod-pdf-upload" accept="application/pdf" class="hidden" onchange="handleProductPdfUpload(event)">
-                                                </label>
-                                                <button type="button" onclick="previewCurrentFormPdf()" class="px-3.5 py-2.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl transition font-bold flex items-center gap-1.5 shadow-sm" title="Probar visualización de la ficha técnica">
-                                                    <i class="fas fa-eye text-blue-600"></i> Probar Ficha
-                                                </button>
-                                                <button type="button" onclick="clearProductPdf()" class="px-3 py-2.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-xl transition font-bold" title="Limpiar PDF">
-                                                    <i class="fas fa-trash"></i>
+                                                <button type="button" onclick="toggleGoogleDriveHelper()" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition">
+                                                    <i class="fas fa-circle-question"></i> ¿Cómo subir a Drive?
                                                 </button>
                                             </div>
-                                            <div id="prod-pdf-status" class="text-[11px] font-semibold text-emerald-600 min-h-[16px]"></div>
+                                            <div class="flex gap-2">
+                                                <input type="url" id="prod-pdf-url" placeholder="https://drive.google.com/file/d/... o enlace web del PDF" class="input-dark flex-1 p-2.5 rounded-xl text-xs font-mono" oninput="handlePdfUrlInput(this.value)" onchange="handlePdfUrlInput(this.value)" onpaste="setTimeout(()=>handlePdfUrlInput(this.value), 50)">
+                                                <button type="button" onclick="pastePdfUrlFromClipboard()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-xl text-xs text-gray-700 font-bold flex items-center gap-1 transition shadow-sm" title="Pegar enlace del portapapeles">
+                                                    <i class="fas fa-paste text-gray-500"></i> Pegar
+                                                </button>
+                                            </div>
                                         </div>
+
+                                        <!-- Guía Rápida Google Drive Desplegable -->
+                                        <div id="gdrive-helper-box" class="hidden bg-blue-50/80 border border-blue-200 rounded-xl p-3 text-[11px] text-gray-700 space-y-1.5 animate-fadeIn">
+                                            <div class="font-bold text-blue-800 flex items-center gap-1.5">
+                                                <i class="fab fa-google-drive text-emerald-600"></i> 3 Pasos rápidos para enlazar tu PDF con Google Drive:
+                                            </div>
+                                            <ol class="list-decimal list-inside space-y-1 text-gray-600 pl-1">
+                                                <li>Entra a <b>drive.google.com</b> y sube tu archivo PDF.</li>
+                                                <li>Haz clic derecho en el archivo &gt; <b>Compartir</b> &gt; En "Acceso general" elige: <b>"Cualquier persona con el enlace"</b>.</li>
+                                                <li>Haz clic en <b>"Copiar enlace"</b> y pégalo en la casilla de arriba. ¡Listo! Se verá perfecto en celulares y computadoras.</li>
+                                            </ol>
+                                        </div>
+
+                                        <!-- Opción Secundaria: Subir PDF Local & Acciones -->
+                                        <div class="flex items-center gap-2 flex-wrap pt-1">
+                                            <label class="flex-1 min-w-[140px] bg-white border border-gray-300 hover:border-brand rounded-xl p-2.5 text-center cursor-pointer transition text-xs text-gray-700 font-semibold flex items-center justify-center gap-1.5 shadow-sm">
+                                                <i class="fas fa-file-arrow-up text-red-600 text-sm"></i> Subir PDF local (&lt; 800 KB)
+                                                <input type="file" id="prod-pdf-upload" accept="application/pdf" class="hidden" onchange="handleProductPdfUpload(event)">
+                                            </label>
+                                            <button type="button" onclick="previewCurrentFormPdf()" class="px-3.5 py-2.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl transition font-bold flex items-center gap-1.5 shadow-sm" title="Probar visualización de la ficha técnica">
+                                                <i class="fas fa-eye text-blue-600"></i> Probar Ficha
+                                            </button>
+                                            <button type="button" onclick="clearProductPdf()" class="px-3 py-2.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-xl transition font-bold" title="Limpiar y usar formato oficial automático">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Indicador de Estado en Vivo -->
+                                        <div id="prod-pdf-status" class="min-h-[16px]"></div>
                                         <input type="hidden" id="prod-pdf">
                                     </div>
                                 </div>
@@ -2550,8 +2566,9 @@
             let finalDesc = getProductCleanDesc(p);
             const customPdf = (getProductPdfUrl(p) || '').trim();
             if (customPdf) {
-                // Si es un enlace web (http/https/gdrive/dropbox) o un base64 (< 3.8MB), se almacena en la nube
-                if (customPdf.startsWith('http') || (customPdf.startsWith('data:application/pdf') && customPdf.length < 3.8 * 1024 * 1024)) {
+                // Si es un enlace web (http/https/gdrive/dropbox), siempre se almacena en la nube (< 200 bytes)
+                // Si es un base64, solo se incluye si es menor a 800KB para garantizar que Supabase PostgREST no dé HTTP 413
+                if (customPdf.startsWith('http') || (customPdf.startsWith('data:application/pdf') && customPdf.length < 800 * 1024)) {
                     finalDesc = finalDesc ? `${finalDesc}\n\n[FICHA_PDF: ${customPdf}]` : `[FICHA_PDF: ${customPdf}]`;
                 }
             }
@@ -5270,36 +5287,58 @@
             };
         }
 
+        function toggleGoogleDriveHelper(forceState) {
+            const el = document.getElementById('gdrive-helper-box');
+            if (!el) return;
+            if (typeof forceState === 'boolean') {
+                el.classList.toggle('hidden', !forceState);
+            } else {
+                el.classList.toggle('hidden');
+            }
+        }
+
+        async function pastePdfUrlFromClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
+                        const urlInput = document.getElementById('prod-pdf-url');
+                        if (urlInput) {
+                            urlInput.value = text.trim();
+                            handlePdfUrlInput(text.trim());
+                            showToast('Enlace pegado correctamente ✅');
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Clipboard read error:', e);
+            }
+            const urlInput = document.getElementById('prod-pdf-url');
+            if (urlInput) {
+                urlInput.focus();
+                showToast('Presiona Ctrl + V para pegar tu enlace de PDF', 'info');
+            }
+        }
+
         function handlePdfUrlInput(val) {
             const trimmed = (val || '').trim();
             const pdfInput = document.getElementById('prod-pdf');
             if (pdfInput) pdfInput.value = trimmed;
+            const fileInput = document.getElementById('prod-pdf-upload');
+            if (fileInput && trimmed) fileInput.value = '';
             updatePdfStatusText();
         }
 
         function setPdfMode(mode) {
-            const btnAuto = document.getElementById('tab-pdf-auto');
-            const btnCustom = document.getElementById('tab-pdf-custom');
-            const divAuto = document.getElementById('mode-pdf-auto');
-            const divCustom = document.getElementById('mode-pdf-custom');
-            if (!btnAuto || !btnCustom) return;
-
+            // Compatibilidad retroactiva
             if (mode === 'auto') {
-                btnAuto.className = "text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors";
-                btnCustom.className = "text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors";
-                if(divAuto) divAuto.classList.remove('hidden');
-                if(divCustom) divCustom.classList.add('hidden');
                 const pdfInput = document.getElementById('prod-pdf');
                 if (pdfInput) pdfInput.value = '';
                 const pdfUrl = document.getElementById('prod-pdf-url');
                 if (pdfUrl) pdfUrl.value = '';
                 const pdfUpload = document.getElementById('prod-pdf-upload');
                 if (pdfUpload) pdfUpload.value = '';
-            } else {
-                btnCustom.className = "text-xs font-bold pb-1 border-b-2 border-brand text-brand transition-colors";
-                btnAuto.className = "text-xs font-bold pb-1 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors";
-                if(divCustom) divCustom.classList.remove('hidden');
-                if(divAuto) divAuto.classList.add('hidden');
             }
             updatePdfStatusText();
         }
@@ -5309,33 +5348,74 @@
             const pdfVal = (document.getElementById('prod-pdf')?.value || document.getElementById('prod-pdf-url')?.value || '').trim();
             if (!statusEl) return;
             if (!pdfVal) {
-                statusEl.innerHTML = '';
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-gray-500 bg-white p-2.5 rounded-xl border border-gray-200 flex items-center gap-2">
+                        <i class="fas fa-wand-magic-sparkles text-brand text-xs"></i>
+                        <span><b>Ficha Técnica Automática Activa:</b> Si no asignas un PDF, se generará la Ficha Técnica oficial estandarizada de Corporation Franir.</span>
+                    </div>
+                `;
                 return;
             }
             const pdfInfo = formatPdfUrl(pdfVal);
             if (pdfInfo.type === 'gdrive') {
-                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace de Google Drive detectado (optimizado para celular y PC)</span>';
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-1.5"><i class="fab fa-google-drive text-emerald-600 text-sm"></i> <b>Google Drive Verificado:</b> 100% visible en celulares y laptops sin límite de peso.</span>
+                        <span class="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">NUBE OK</span>
+                    </div>
+                `;
             } else if (pdfInfo.type === 'dropbox') {
-                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace de Dropbox detectado (optimizado para descarga)</span>';
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-blue-800 bg-blue-50 border border-blue-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-1.5"><i class="fab fa-dropbox text-blue-600 text-sm"></i> <b>Dropbox Verificado:</b> Enlace streaming listo para visualización y descarga.</span>
+                        <span class="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-full">NUBE OK</span>
+                    </div>
+                `;
             } else if (pdfInfo.type === 'data') {
-                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Archivo PDF subido listo para guardar en la nube</span>';
-            } else if (pdfInfo.type === 'web') {
-                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Enlace web directo asignado correctamente</span>';
+                const lenKb = Math.round(pdfVal.length * 0.75 / 1024);
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-1.5"><i class="fas fa-file-pdf text-red-600 text-sm"></i> <b>Archivo PDF Adjunto (${lenKb} KB):</b> Listo para sincronizarse a la nube.</span>
+                        <span class="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">LOCAL OK</span>
+                    </div>
+                `;
+            } else if (pdfInfo.type === 'web' || pdfInfo.type === 'onedrive') {
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-blue-800 bg-blue-50 border border-blue-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-1.5"><i class="fas fa-globe text-blue-600 text-sm"></i> <b>Enlace Web Activo:</b> Disponible para visualización y descarga en cualquier dispositivo.</span>
+                        <span class="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-full">NUBE OK</span>
+                    </div>
+                `;
             } else {
-                statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Ficha técnica PDF activa</span>';
+                statusEl.innerHTML = `
+                    <div class="text-[11px] text-gray-700 bg-gray-50 border border-gray-200 p-2.5 rounded-xl flex items-center gap-1.5">
+                        <i class="fas fa-file-pdf text-red-600 text-sm"></i> Ficha técnica activa asignada
+                    </div>
+                `;
             }
         }
 
         function handleProductPdfUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-            if (file.type !== 'application/pdf') {
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
                 showToast('Por favor selecciona un archivo PDF válido', 'error');
                 return;
             }
-            if (file.size > 3.8 * 1024 * 1024) {
+            if (file.size > 800 * 1024) {
                 const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-                showToast(`El PDF pesa ${sizeMb} MB. Para sincronización inmediata en celulares y laptops, te recomendamos usar un PDF menor a 3.5MB o pegar el enlace web de Google Drive.`, 'warning');
+                showFranirConfirm({
+                    title: '⚠️ PDF Pesado Detectado (' + sizeMb + ' MB)',
+                    message: `El archivo PDF seleccionado pesa ${sizeMb} MB.\n\nPara que la Ficha Técnica se pueda ver y descargar desde tu celular y en cualquier laptop sin dar error "Guardado Local", las bases de datos en la nube requieren enlaces web o Google Drive para archivos mayores a 800 KB.\n\n¿Deseas ver los 3 pasos para subirlo a Google Drive?`,
+                    icon: 'fa-file-pdf',
+                    confirmText: 'SÍ, VER PASOS DE GOOGLE DRIVE',
+                    cancelText: 'ENTENDIDO',
+                    onConfirm: () => {
+                        toggleGoogleDriveHelper(true);
+                        document.getElementById('prod-pdf-url')?.focus();
+                    }
+                });
+                event.target.value = '';
                 return;
             }
             const reader = new FileReader();
@@ -5346,14 +5426,14 @@
                 const pdfUrl = document.getElementById('prod-pdf-url');
                 if (pdfUrl) pdfUrl.value = '';
                 updatePdfStatusText();
-                showToast('Ficha Técnica en PDF cargada correctamente ✅');
+                showToast(`✅ Ficha Técnica (${(file.size / 1024).toFixed(0)} KB) cargada y lista para la nube`);
             };
             reader.readAsDataURL(file);
         }
 
         function clearProductPdf() {
             const prodId = document.getElementById('prod-id')?.value;
-            if (prodId) pdfDb.remove(prodId);
+            if (prodId && typeof pdfDb !== 'undefined') pdfDb.remove(prodId);
             const pdfInput = document.getElementById('prod-pdf');
             if (pdfInput) pdfInput.value = '';
             const pdfUrl = document.getElementById('prod-pdf-url');
@@ -5361,7 +5441,6 @@
             const fileInput = document.getElementById('prod-pdf-upload');
             if (fileInput) fileInput.value = '';
             updatePdfStatusText();
-            setPdfMode('auto');
             showToast('Ficha Técnica personalizada eliminada. Se usará formato oficial automático.');
         }
 
@@ -5469,17 +5548,26 @@
                         </div>
                     </div>
 
-                    ${isMobile && pdfInfo.type === 'data' ? `
-                    <!-- Tarjeta Optimizada para Celulares (Descarga Directa) -->
-                    <div class="bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-2xl p-6 text-center shadow-sm mb-4">
-                        <div class="w-14 h-14 bg-red-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 shadow-md">
-                            <i class="fas fa-file-pdf"></i>
+                    ${isMobile ? `
+                    <!-- Tarjeta Optimizada para Celulares (Abrir & Descargar con 1 Toque) -->
+                    <div class="bg-gradient-to-r from-blue-50 to-orange-50 border border-blue-200 rounded-2xl p-4 sm:p-5 text-center shadow-sm mb-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-left flex items-center gap-3">
+                            <div class="w-11 h-11 bg-red-600 text-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-heading font-bold text-gray-900 text-sm">Ficha Técnica Oficial para Móvil</h4>
+                                <p class="text-[11px] text-gray-600">Visualiza en tu celular con zoom completo y descarga directa</p>
+                            </div>
                         </div>
-                        <h4 class="font-heading font-bold text-gray-900 text-sm sm:text-base mb-1">Ficha Técnica Oficial para Móvil</h4>
-                        <p class="text-xs text-gray-600 mb-4 max-w-sm mx-auto">Toca el botón a continuación para abrir y guardar la ficha técnica completa en tu celular:</p>
-                        <a href="${pdfInfo.downloadUrl}" download="${filename}" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-xl font-heading font-bold text-xs inline-flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
-                            <i class="fas fa-download text-sm"></i> DESCARGAR Y ABRIR EN CELULAR
-                        </a>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <a href="${pdfInfo.viewUrl || pdfInfo.previewUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white py-3 px-5 rounded-xl font-heading font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow active:scale-95 transition">
+                                <i class="fas fa-arrow-up-right-from-square"></i> ABRIR EN CELULAR
+                            </a>
+                            <button onclick="downloadCurrentDatasheetPDF()" class="flex-1 sm:flex-initial bg-red-600 hover:bg-red-700 text-white py-3 px-5 rounded-xl font-heading font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow active:scale-95 transition">
+                                <i class="fas fa-download"></i> DESCARGAR
+                            </button>
+                        </div>
                     </div>
                     ` : ''}
 
@@ -5884,13 +5972,13 @@
             preview.src = '';
             preview.classList.add('hidden');
 
-            setPdfMode('auto');
             const prodPdf = document.getElementById('prod-pdf');
             if (prodPdf) prodPdf.value = '';
             const prodPdfUrl = document.getElementById('prod-pdf-url');
             if (prodPdfUrl) prodPdfUrl.value = '';
             const prodPdfUpload = document.getElementById('prod-pdf-upload');
             if (prodPdfUpload) prodPdfUpload.value = '';
+            toggleGoogleDriveHelper(false);
             updatePdfStatusText();
             
             document.getElementById('admin-products').classList.add('hidden');
@@ -5926,7 +6014,7 @@
             }
 
             let customPdf = getProductPdfUrl(product);
-            if (!customPdf) {
+            if (!customPdf && product.id) {
                 customPdf = await pdfDb.get(product.id);
             }
 
@@ -5934,12 +6022,10 @@
             if (prodPdf) prodPdf.value = customPdf || '';
             const prodPdfUrl = document.getElementById('prod-pdf-url');
             if (prodPdfUrl) prodPdfUrl.value = (customPdf && customPdf.startsWith('http')) ? customPdf : '';
+            const prodPdfUpload = document.getElementById('prod-pdf-upload');
+            if (prodPdfUpload) prodPdfUpload.value = '';
 
-            if (customPdf) {
-                setPdfMode('custom');
-            } else {
-                setPdfMode('auto');
-            }
+            toggleGoogleDriveHelper(false);
             updatePdfStatusText();
 
             document.getElementById('form-title').innerText = `Editar Producto: ${product.code}`;
@@ -5959,13 +6045,9 @@
             let cloudPdf = rawPdf;
             if (rawPdf.startsWith('data:application/pdf')) {
                 await pdfDb.set(targetId, rawPdf);
-                if (rawPdf.length > 3.8 * 1024 * 1024) {
-                    showToast('PDF pesado guardado en este equipo. Para sincronizarlo con tu celular te recomendamos enlace web o Google Drive.', 'warning');
-                }
             } else if (rawPdf) {
                 await pdfDb.set(targetId, rawPdf);
             } else {
-                // Si el usuario eliminó la ficha técnica o la dejó en automático, purgar de IndexedDB
                 if (typeof pdfDb !== 'undefined') {
                     await pdfDb.remove(targetId);
                 }
@@ -5993,35 +6075,51 @@
             if (id) {
                 const index = products.findIndex(p => p.id === id);
                 if(index > -1) products[index] = newProduct;
-                showToast('Producto actualizado correctamente');
+                showToast('Producto actualizado en memoria');
             } else {
                 products.unshift(newProduct);
-                showToast('Producto agregado exitosamente');
+                showToast('Producto agregado a la lista');
             }
 
             persistState();
             if (typeof renderHome === 'function') renderHome();
             if (currentView === 'products') filterProducts();
             
-            // Sincronizar en la nube (Supabase REST API) con sanitización de columnas
+            // Sincronizar en la nube (Supabase REST API)
             try {
-                const res = await supabaseApi.upsert('products', cleanProductForDb(newProduct));
+                let dbProduct = cleanProductForDb(newProduct);
+                let res = await supabaseApi.upsert('products', dbProduct);
+
+                // Si falló por tamaño del PDF en base64 o timeout, reintentar guardando el producto sin base64
+                // para garantizar que el producto SIEMPRE exista en Supabase en celulares y otras laptops
+                if (res && res.error && (res.isPayloadTooLarge || (newProduct.pdf && newProduct.pdf.startsWith('data:')))) {
+                    console.warn('Reintentando guardar producto sin base64 pesado para asegurar presencia en Supabase...');
+                    const fallbackDbProduct = { ...dbProduct, desc: getProductCleanDesc(newProduct.desc) };
+                    const retryRes = await supabaseApi.upsert('products', fallbackDbProduct);
+                    if (retryRes && !retryRes.error) {
+                        state.done(true, 'Guardado en la Nube ✅');
+                        showToast(`✅ Producto guardado en la nube. Para que su Ficha Técnica también se vea en tu celular, usa un enlace de Google Drive en lugar de subir un archivo pesado.`, 'warning', 6000);
+                        setTimeout(() => adminNav('products'), 1200);
+                        return;
+                    }
+                }
+
                 if (res && res.error) {
                     console.warn('Supabase product upsert error:', res.error);
-                    if (res.isPayloadTooLarge) {
-                        state.done('local', 'Guardado en equipo (PDF pesado)');
-                        showToast('Guardado en este equipo. El archivo PDF es muy pesado para la nube; usa un enlace de Google Drive o un PDF menor a 3.5MB.', 'warning');
-                    } else {
-                        state.done('local', 'Guardado en equipo ✅');
-                        showToast('Guardado en este equipo. Se sincronizará con la nube automáticamente.', 'info');
-                    }
+                    state.done('local', 'Guardado Local');
+                    showToast('Guardado en este equipo. Revisa tu conexión a internet para sincronizar con la nube.', 'warning');
                 } else {
                     state.done(true, '¡Producto Guardado! ✅');
-                    showToast(`✅ Producto "${newProduct.name}" y su Ficha Técnica guardados en la nube`, 'success');
+                    const hasPdfTag = dbProduct.desc && dbProduct.desc.includes('[FICHA_PDF');
+                    if (hasPdfTag) {
+                        showToast(`✅ Producto "${newProduct.name}" y su Ficha Técnica guardados en la nube (disponible en celulares y PC)`, 'success');
+                    } else {
+                        showToast(`✅ Producto "${newProduct.name}" guardado en la nube con Ficha Técnica oficial automática`, 'success');
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                state.done('local', 'Guardado en equipo ✅');
+                state.done('local', 'Guardado Local');
                 showToast('Guardado en este equipo', 'info');
             }
 
